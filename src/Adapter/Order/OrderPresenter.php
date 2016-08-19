@@ -5,8 +5,6 @@ namespace PrestaShop\PrestaShop\Adapter\Order;
 use PrestaShop\PrestaShop\Adapter\Cart\CartPresenter;
 use PrestaShop\PrestaShop\Adapter\ObjectPresenter;
 use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
-use PrestaShop\PrestaShop\Adapter\Translator;
-use PrestaShop\PrestaShop\Adapter\LegacyContext;
 use PrestaShop\PrestaShop\Core\Foundation\Templating\PresenterInterface;
 use Address;
 use AddressFormat;
@@ -18,7 +16,7 @@ use CustomerMessage;
 use HistoryController;
 use Order;
 use OrderReturn;
-use Product;
+use TaxConfiguration;
 use Tools;
 
 class OrderPresenter implements PresenterInterface
@@ -35,12 +33,16 @@ class OrderPresenter implements PresenterInterface
     /* @var Translator */
     private $translator;
 
+    /* @var TaxConfiguration */
+    private $taxConfiguration;
+
     public function __construct()
     {
         $this->cartPresenter = new CartPresenter();
         $this->objectPresenter = new ObjectPresenter();
         $this->priceFormatter = new PriceFormatter();
-        $this->translator = new Translator(new LegacyContext());
+        $this->translator = Context::getContext()->getTranslator();
+        $this->taxConfiguration = new TaxConfiguration();
     }
 
     /**
@@ -98,6 +100,7 @@ class OrderPresenter implements PresenterInterface
                         $orderProduct['attributes'] = array();
                     }
                     $orderProduct['cover'] = $cartProduct['cover'];
+                    $orderProduct['unit_price_full'] = $cartProduct['unit_price_full'];
                 }
             }
 
@@ -122,7 +125,7 @@ class OrderPresenter implements PresenterInterface
         $total_products = ($this->includeTaxes()) ? $order->total_products_wt : $order->total_products;
         $subtotals['products'] = array(
             'type' => 'products',
-            'label' => $this->translator->trans('Subtotal', array(), 'Cart'),
+            'label' => $this->translator->trans('Subtotal', array(), 'Shop.Theme.Checkout'),
             'amount' => $total_products,
             'value' => $this->priceFormatter->format($total_products),
         );
@@ -133,26 +136,29 @@ class OrderPresenter implements PresenterInterface
         if ((float) $discount_amount) {
             $subtotals['discounts'] = array(
                 'type' => 'discount',
-                'label' => $this->translator->trans('Discount', array(), 'Cart'),
+                'label' => $this->translator->trans('Discount', array(), 'Shop.Theme.Checkout'),
                 'amount' => $discount_amount,
                 'value' => $this->priceFormatter->format($discount_amount),
             );
         }
 
-        $shipping_cost = ($this->includeTaxes()) ? $order->total_shipping_tax_incl : $order->total_shipping_tax_excl;
-        $subtotals['shipping'] = array(
-            'type' => 'shipping',
-            'label' => $this->translator->trans('Shipping and handling', array(), 'Cart'),
-            'amount' => $shipping_cost,
-            'value' => $shipping_cost != 0 ? $this->priceFormatter->format($shipping_cost) : $this->translator->trans('Free', array(), 'Cart'),
-        );
+        $cart = new Cart($order->id_cart);
+        if (!$cart->isVirtualCart()) {
+            $shippingCost = ($this->includeTaxes()) ? $order->total_shipping_tax_incl : $order->total_shipping_tax_excl;
+            $subtotals['shipping'] = array(
+                'type' => 'shipping',
+                'label' => $this->translator->trans('Shipping and handling', array(), 'Shop.Theme.Checkout'),
+                'amount' => $shippingCost,
+                'value' => $shippingCost != 0 ? $this->priceFormatter->format($shippingCost) : $this->translator->trans('Free', array(), 'Shop.Theme.Checkout'),
+            );
+        }
 
         $tax = $order->total_paid_tax_incl - $order->total_paid_tax_excl;
         $subtotals['tax'] = null;
         if ((float) $tax && Configuration::get('PS_TAX_DISPLAY')) {
             $subtotals['tax'] = array(
                 'type' => 'tax',
-                'label' => $this->translator->trans('Tax', array(), 'Cart'),
+                'label' => $this->translator->trans('Tax', array(), 'Shop.Theme.Checkout'),
                 'amount' => $tax,
                 'value' => $this->priceFormatter->format($tax),
             );
@@ -163,14 +169,14 @@ class OrderPresenter implements PresenterInterface
         $amounts['totals'] = array();
         $amounts['totals']['total'] = array(
             'type' => 'total',
-            'label' => $this->translator->trans('Total', array(), 'Cart'),
+            'label' => $this->translator->trans('Total', array(), 'Shop.Theme.Checkout'),
             'amount' => $order->total_paid,
             'value' => $this->priceFormatter->format($order->total_paid),
         );
 
         $amounts['totals']['total_paid'] = array(
             'type' => 'total_paid',
-            'label' => $this->translator->trans('Total paid', array(), 'Order'),
+            'label' => $this->translator->trans('Total paid', array(), 'Shop.Theme.Checkout'),
             'amount' => $order->total_paid_real,
             'value' => $this->priceFormatter->format($order->total_paid_real),
         );
@@ -186,15 +192,18 @@ class OrderPresenter implements PresenterInterface
     private function getDetails(Order $order)
     {
         $context = Context::getContext();
+        $cart = new Cart($order->id_cart);
 
         return array(
             'id' => $order->id,
             'reference' => $order->reference,
             'order_date' => Tools::displayDate($order->date_add, null, false),
-            'url_to_reorder' => HistoryController::getUrlToReorder((int) $order->id, $context),
-            'url_to_invoice' => HistoryController::getUrlToInvoice($order, $context),
+            'details_url' => $context->link->getPageLink('order-detail', true, null, 'id_order='.$order->id),
+            'reorder_url' => HistoryController::getUrlToReorder((int) $order->id, $context),
+            'invoice_url' => HistoryController::getUrlToInvoice($order, $context),
             'gift_message' => nl2br($order->gift_message),
-            'return_allowed' => (int) $order->isReturnable(),
+            'is_returnable' => (int) $order->isReturnable(),
+            'is_virtual' => $cart->isVirtualCart(),
             'payment' => $order->payment,
             'recyclable' => (bool) $order->recyclable,
             'shipping' => $this->getShipping($order),
@@ -214,6 +223,9 @@ class OrderPresenter implements PresenterInterface
         $historyList = $order->getHistory($context->language->id, false, true);
 
         foreach ($historyList as $historyId => $history) {
+            if ($history['id_order_state'] == $order->current_state) {
+                $historyId = 'current';
+            }
             $orderHistory[$historyId] = $history;
             $orderHistory[$historyId]['history_date'] = Tools::displayDate($history['date_add'], null, false);
             $orderHistory[$historyId]['contrast'] = (Tools::getBrightness($history['color']) > 128) ? 'dark' : 'bright';
@@ -238,7 +250,7 @@ class OrderPresenter implements PresenterInterface
                 $orderShipping[$shippingId]['shipping_date'] = Tools::displayDate($shipping['date_add'], null, false);
                 $orderShipping[$shippingId]['shipping_weight'] = ($shipping['weight'] > 0) ? sprintf('%.3f', $shipping['weight']).' '.Configuration::get('PS_WEIGHT_UNIT') : '-';
                 $shippingCost = (!$order->getTaxCalculationMethod()) ? $shipping['shipping_cost_tax_excl'] : $shipping['shipping_cost_tax_incl'];
-                $orderShipping[$shippingId]['shipping_cost'] = ($shippingCost > 0) ? Tools::displayPrice($shippingCost, (int) $order->id_currency) : $this->translator->trans('Free', array(), 'Cart');
+                $orderShipping[$shippingId]['shipping_cost'] = ($shippingCost > 0) ? Tools::displayPrice($shippingCost, (int) $order->id_currency) : $this->translator->trans('Free', array(), 'Shop.Theme.Checkout');
 
                 $tracking_line = '-';
                 if ($shipping['tracking_number']) {
@@ -292,6 +304,7 @@ class OrderPresenter implements PresenterInterface
         $carrier = new Carrier((int) $order->id_carrier, (int) $order->id_lang);
         $orderCarrier = $this->objectPresenter->present($carrier);
         $orderCarrier['name'] = ($carrier->name == '0') ? Configuration::get('PS_SHOP_NAME') : $carrier->name;
+        $orderCarrier['delay'] = $carrier->delay;
 
         return $orderCarrier;
     }
@@ -303,10 +316,10 @@ class OrderPresenter implements PresenterInterface
      */
     private function getAddresses(Order $order)
     {
-        $orderAddresses = [
+        $orderAddresses = array(
             'delivery' => array(),
             'invoice' => array(),
-        ];
+        );
 
         $addressDelivery = new Address((int) $order->id_address_delivery);
         $addressInvoice = new Address((int) $order->id_address_invoice);
@@ -339,18 +352,18 @@ class OrderPresenter implements PresenterInterface
 
     private function includeTaxes()
     {
-        return !Product::getTaxCalculationMethod(Context::getContext()->cookie->id_customer);
+        return $this->taxConfiguration->includeTaxes();
     }
 
     private function getLabels()
     {
         return array(
             'tax_short' => ($this->includeTaxes())
-                ? $this->translator->trans('(tax incl.)', array(), 'Tax')
-                : $this->translator->trans('(tax excl.)', array(), 'Tax'),
+                ? $this->translator->trans('(tax incl.)', array(), 'Shop.Theme')
+                : $this->translator->trans('(tax excl.)', array(), 'Shop.Theme'),
             'tax_long' => ($this->includeTaxes())
-                ? $this->translator->trans('(tax included)', array(), 'Tax')
-                : $this->translator->trans('(tax excluded)', array(), 'Tax'),
+                ? $this->translator->trans('(tax included)', array(), 'Shop.Theme')
+                : $this->translator->trans('(tax excluded)', array(), 'Shop.Theme'),
         );
     }
 }

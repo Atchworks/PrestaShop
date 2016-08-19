@@ -15,27 +15,6 @@
         <h1 class="h3 product-title" itemprop="name"><a href="{$product.url}">{$product.name|truncate:30:'...'}</a></h1>
       {/block}
 
-      {block name='product_description_short'}
-        <div class="product-description-short" itemprop="description">{$product.description_short nofilter}</div>
-      {/block}
-
-      {block name='product_list_actions'}
-        <div class="product-list-actions">
-          {if $product.add_to_cart_url}
-              <a
-                class = "add-to-cart btn btn-primary"
-                href  = "{$product.add_to_cart_url}"
-                rel   = "nofollow"
-                data-id-product="{$product.id_product}"
-                data-id-product-attribute="{$product.id_product_attribute}"
-                data-link-action="add-to-cart"
-                title = "{l s='Add to cart'}"
-              >{l s='Add to cart'}</a>
-          {/if}
-          {hook h='displayProductListFunctionalButtons' product=$product}
-        </div>
-      {/block}
-
       {block name='product_price_and_shipping'}
         <div class="product-price-and-shipping">
           {if $product.has_discount}
@@ -57,33 +36,28 @@
         </div>
       {/block}
 
-      {block name='product_labels'}
-        <ul class="product-labels">
-          {foreach from=$product.labels item=label}
-            <li class="{$label.type}">{$label.label}</li>
+      {block name='product_flags'}
+        <ul class="product-flags">
+          {foreach from=$product.flags item=flag}
+            <li class="{$flag.type}">{$flag.label}</li>
           {/foreach}
         </ul>
       {/block}
 
-      {block name='product_availability'}
-        {if $product.show_availability}
-          {* availability may take the values "available" or "unavailable" *}
-          <span class='product-availability {$product.availability}'>{$product.availability_message}</span>
-        {/if}
-      {/block}
-
     </div>
-    <div class="highlighted-informations">
+    <div class="highlighted-informations{if !$product.main_variants} no-variants{/if} hidden-sm-down">
       <a
         href="#"
-        title="{l s='Quick view'}"
         class="quick-view"
         data-link-action="quickview"
       >
-        <i class="material-icons search">&#xE8B6;</i> {l s='Quick view'}
+        <i class="material-icons search">&#xE8B6;</i> {l s='Quick view' d='Shop.Theme.Actions'}
       </a>
+
       {block name='product_variants'}
-        {include file='catalog/_partials/variant-links.tpl' variants=$product.main_variants}
+        {if $product.main_variants}
+          {include file='catalog/_partials/variant-links.tpl' variants=$product.main_variants}
+        {/if}
       {/block}
     </div>
 

@@ -60,7 +60,7 @@ class FrameworkBundleAdminController extends Controller
             return $errors;
         }
 
-        $translator = $this->container->get('prestashop.twig.extension.translation');
+        $translator = $this->container->get('translator');
 
         foreach ($form->getErrors(true) as $error) {
             if (!$error->getCause()) {
@@ -124,7 +124,7 @@ class FrameworkBundleAdminController extends Controller
     protected function generateSidebarLink($section, $title = "Documentation")
     {
         $legacyContext = $this->get('prestashop.adapter.legacy.context');
-        $translator = $this->get('prestashop.adapter.translator');
+        $translator = $this->get('translator');
         $docLink = urlencode('http://help.prestashop.com/'.$legacyContext->getEmployeeLanguageIso().'/doc/'
             .$section.'?version='._PS_VERSION_.'&country='.$legacyContext->getEmployeeLanguageIso());
 
@@ -132,5 +132,54 @@ class FrameworkBundleAdminController extends Controller
             'url' => $docLink,
             'title' => $translator->trans($title, [], 'AdminCommon')
         ]);
+    }
+
+    /**
+     * Get the old but still useful context
+     *
+     */
+    protected function getContext()
+    {
+        $legacyContextProvider = $this->get('prestashop.adapter.legacy.context');
+
+        return $legacyContextProvider->getContext();
+    }
+
+    /**
+     * @param $lang
+     * @return mixed
+     */
+    protected function langToLocale($lang)
+    {
+        $legacyToStandardLocales = $this->getLangToLocalesMapping();
+
+        return $legacyToStandardLocales[$lang];
+    }
+
+    /**
+     * @return mixed
+     * @throws \Exception
+     */
+    protected function getLangToLocalesMapping()
+    {
+        $translationsDirectory = $this->getResourcesDirectory();
+
+        $legacyToStandardLocalesJson = file_get_contents($translationsDirectory . '/legacy-to-standard-locales.json');
+        $legacyToStandardLocales = json_decode($legacyToStandardLocalesJson, true);
+
+        $jsonLastErrorCode = json_last_error();
+        if (JSON_ERROR_NONE !== $jsonLastErrorCode) {
+            throw new \Exception('The legacy to standard locales JSON could not be decoded', $jsonLastErrorCode);
+        }
+
+        return $legacyToStandardLocales;
+    }
+
+    /**
+     * @return string
+     */
+    protected function getResourcesDirectory()
+    {
+        return $this->container->getParameter('kernel.root_dir') . '/Resources';
     }
 }

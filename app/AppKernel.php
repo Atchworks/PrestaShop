@@ -17,6 +17,8 @@ class AppKernel extends Kernel
             new Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle(),
             // PrestaShop Core bundle
             new PrestaShopBundle\PrestaShopBundle(),
+            // Api consumer
+            new Csa\Bundle\GuzzleBundle\CsaGuzzleBundle(),
         );
 
         if (in_array($this->getEnvironment(), array('dev', 'test'))) {
@@ -24,6 +26,12 @@ class AppKernel extends Kernel
             $bundles[] = new Symfony\Bundle\WebProfilerBundle\WebProfilerBundle();
             $bundles[] = new Sensio\Bundle\DistributionBundle\SensioDistributionBundle();
             $bundles[] = new Sensio\Bundle\GeneratorBundle\SensioGeneratorBundle();
+        }
+
+        if (extension_loaded('apc')) {
+            $_SERVER['SYMFONY__CACHE__DRIVER'] = 'apc';
+        } else {
+            $_SERVER['SYMFONY__CACHE__DRIVER'] = 'array';
         }
 
         return $bundles;

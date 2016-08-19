@@ -89,7 +89,7 @@
 				<div class="btn-group">
 					<button type="button" class="btn btn-default edit_product_change_link">
 						<i class="icon-pencil"></i>
-						{l s='Edit'}
+						{l s='Edit' d='Admin.Actions'}
 					</button>
 					<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
 						<span class="caret"></span>
@@ -98,7 +98,7 @@
 						<li>
 							<a href="#" class="delete_product_line">
 								<i class="icon-trash"></i>
-								{l s='Delete'}
+								{l s='Delete' d='Admin.Actions'}
 							</a>
 						</li>
 					</ul>
@@ -110,7 +110,7 @@
 				</button>
 				<button type="button" class="btn btn-default cancel_product_change_link" style="display: none;">
 					<i class="icon-remove"></i>
-					{l s='Cancel'}
+					{l s='Cancel' d='Admin.Actions'}
 				</button>
 			</td>
 		{/if}
@@ -136,7 +136,7 @@
 							{elseif ($type == Product::CUSTOMIZE_TEXTFIELD)}
 								{foreach from=$datas item=data}
 									<div class="form-group">
-										<span class="col-lg-4 control-label"><strong>{if $data['name']}{l s='%s' sprintf=$data['name']}{else}{l s='Text #%s' sprintf=$data@iteration}{/if}</strong></span>
+										<span class="col-lg-4 control-label"><strong>{if $data['name']}{l s='%s' sprintf=[$data['name']]}{else}{l s='Text #%s' sprintf=[$data@iteration]}{/if}</strong></span>
 										<div class="col-lg-8">
 											<p class="form-control-static">{$data['value']}</p>
 										</div>

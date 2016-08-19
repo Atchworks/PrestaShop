@@ -36,10 +36,10 @@ class AdminSearchEnginesControllerCore extends AdminController
         $this->className = 'SearchEngine';
         $this->lang = false;
 
+        parent::__construct();
+
         $this->addRowAction('edit');
         $this->addRowAction('delete');
-
-        $this->context = Context::getContext();
 
         if (!Tools::getValue('realedit')) {
             $this->deleted = false;
@@ -54,7 +54,7 @@ class AdminSearchEnginesControllerCore extends AdminController
         );
 
         $this->fields_list = array(
-            'id_search_engine' => array('title' => $this->l('ID'), 'width' => 25),
+            'id_search_engine' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'width' => 25),
             'server' => array('title' => $this->l('Server')),
             'getvar' => array('title' => $this->l('GET variable'), 'width' => 100)
         );
@@ -80,11 +80,9 @@ class AdminSearchEnginesControllerCore extends AdminController
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
-
-        parent::__construct();
     }
 
     public function initPageHeaderToolbar()
@@ -98,7 +96,7 @@ class AdminSearchEnginesControllerCore extends AdminController
         }
 
         $this->identifier_name = 'server';
-        
+
         parent::initPageHeaderToolbar();
     }
 }

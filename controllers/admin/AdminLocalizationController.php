@@ -33,7 +33,7 @@ class AdminLocalizationControllerCore extends AdminController
 
         $this->fields_options = array(
             'general' => array(
-                'title' =>    $this->l('Configuration'),
+                'title' =>    $this->trans('Configuration', array(), 'Admin.Global'),
                 'fields' =>    array(
                     'PS_LANG_DEFAULT' => array(
                         'title' => $this->l('Default language'),
@@ -78,7 +78,7 @@ class AdminLocalizationControllerCore extends AdminController
                         'list' => Currency::getCurrencies(false, true, true)
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'localization' => array(
                 'title' =>    $this->l('Local units'),
@@ -117,7 +117,7 @@ class AdminLocalizationControllerCore extends AdminController
                         'class' => 'fixed-width-sm'
                     )
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'options' => array(
                 'title' =>    $this->l('Advanced'),
@@ -139,7 +139,7 @@ class AdminLocalizationControllerCore extends AdminController
                         'class' => 'fixed-width-sm'
                     )
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             )
         );
 
@@ -161,7 +161,7 @@ class AdminLocalizationControllerCore extends AdminController
     public function postProcess()
     {
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
 
@@ -187,15 +187,15 @@ class AdminLocalizationControllerCore extends AdminController
                 }
 
                 if (!$pack && !($pack = @Tools::file_get_contents($path))) {
-                    $this->errors[] = Tools::displayError('Cannot load the localization pack.');
+                    $this->errors[] = $this->trans('Cannot load the localization pack.', array(), 'Admin.International.Notification');
                 }
 
                 if (!$selection = Tools::getValue('selection')) {
-                    $this->errors[] = Tools::displayError('Please select at least one item to import.');
+                    $this->errors[] = $this->trans('Please select at least one item to import.', array(), 'Admin.International.Notification');
                 } else {
                     foreach ($selection as $selected) {
                         if (!Validate::isLocalizationPackSelection($selected)) {
-                            $this->errors[] = Tools::displayError('Invalid selection');
+                            $this->errors[] = $this->trans('Invalid selection', array(), 'Admin.Notifications.Error');
                             return;
                         }
                     }
@@ -344,18 +344,18 @@ class AdminLocalizationControllerCore extends AdminController
                         array(
                             'id'    => 'download_updated_pack_yes',
                             'value'    => 1,
-                            'label' => $this->l('Yes')
+                            'label' => $this->trans('Yes', array(), 'Admin.Global')
                         ),
                         array(
                             'id'    => 'download_updated_pack_no',
                             'value'    => 0,
-                            'label' => $this->l('No')
+                            'label' => $this->trans('No', array(), 'Admin.Global')
                         )
                     )
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Import'),
+                'title' => $this->trans('Import', array(), 'Admin.Actions'),
                 'icon' => 'process-icon-import',
                 'name' => 'submitLocalizationPack'
             ),

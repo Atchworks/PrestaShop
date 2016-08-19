@@ -65,14 +65,17 @@ class AdminReferrersControllerCore extends AdminController
         $this->bootstrap = true;
         $this->table = 'referrer';
         $this->className = 'Referrer';
+
+        parent::__construct();
+
         $this->fields_list = array(
             'id_referrer' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'width' => 25,
                 'align' => 'center'
             ),
             'name' => array(
-                'title' => $this->l('Name'),
+                'title' => $this->trans('Name', array(), 'Admin.Global'),
                 'width' => 80
             ),
             'cache_visitors' => array(
@@ -101,7 +104,7 @@ class AdminReferrersControllerCore extends AdminController
                 'align' => 'center'
             ),
             'cache_sales' => array(
-                'title' => $this->l('Sales'),
+                'title' => $this->trans('Sales', array(), 'Admin.Global'),
                 'width' => 80,
                 'align' => 'right',
                 'prefix' => '<b>',
@@ -155,8 +158,6 @@ class AdminReferrersControllerCore extends AdminController
                 'icon' => 'icon-trash'
             )
         );
-
-        parent::__construct();
     }
 
     public function setMedia()
@@ -216,7 +217,7 @@ class AdminReferrersControllerCore extends AdminController
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'required' => true,
                     'autocomplete' => false
@@ -229,12 +230,12 @@ class AdminReferrersControllerCore extends AdminController
                     'autocomplete' => false
                 )
             ),
-            'submit' => array('title' => $this->l('Save')),
+            'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions')),
         ));
 
         $moduleManagerBuilder = new ModuleManagerBuilder();
         $moduleManager = $moduleManagerBuilder->build();
-    
+
         if ($moduleManager->isInstalled('trackingfront')) {
             $this->fields_form[0]['form']['desc'] = array(
                 $this->l('Affiliates can access their data with this name and password.'),
@@ -271,7 +272,7 @@ class AdminReferrersControllerCore extends AdminController
                     'desc' => $this->l('Percent of the sales.')
                 )
             ),
-            'submit' => array('title' => $this->l('Save'))
+            'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
         ));
 
         if (Shop::isFeatureActive()) {
@@ -323,7 +324,7 @@ class AdminReferrersControllerCore extends AdminController
             'desc' => $this->l('If you know how to use MySQL regular expressions, you can use the').'
 					<a style="cursor: pointer; font-weight: bold;" onclick="$(\'#tracking_expert\').slideToggle();">'.$this->l('expert mode').'.</a>',
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         ));
 
@@ -457,7 +458,7 @@ class AdminReferrersControllerCore extends AdminController
         }
 
         if (Tools::isSubmit('submitSettings')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 if (Configuration::updateValue('TRACKING_DIRECT_TRAFFIC', (int)Tools::getValue('tracking_dt'))) {
                     Tools::redirectAdmin(self::$currentIndex.'&conf=4&token='.Tools::getValue('token'));
                 }
@@ -485,7 +486,7 @@ class AdminReferrersControllerCore extends AdminController
             'pages' => $this->l('Pages viewed'),
             'registrations' => $this->l('Registrations'),
             'orders' => $this->l('Orders'),
-            'sales' => $this->l('Sales'),
+            'sales' => $this->trans('Sales', array(), 'Admin.Global'),
             'reg_rate' => $this->l('Registration rate'),
             'order_rate' => $this->l('Order rate'),
             'click_fee' => $this->l('Click fee'),

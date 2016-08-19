@@ -46,7 +46,7 @@ services:
             - "@prestashop.hook.dispatcher"
     prestashop.adapter.admin.wrapper.product:
         class: PrestaShop\PrestaShop\Adapter\Product\AdminProductWrapper
-        arguments: ["@prestashop.adapter.translator", "@prestashop.adapter.legacy.context"]
+        arguments: ["@translator", "@prestashop.adapter.legacy.context"]
     prestashop.adapter.admin.page_preference:
         class: PrestaShop\PrestaShop\Adapter\Admin\PagePreference
         arguments:
@@ -58,6 +58,7 @@ services:
     prestashop.adapter.admin.data_provider.addons:
         class: PrestaShop\PrestaShop\Adapter\Addons\AddonsDataProvider
         decorates: prestashop.core.admin.data_provider.addons_interface
+        arguments: ['@prestashop.addons.client_api']
         public: false
     prestashop.adapter.admin.data_provider.module:
         class: PrestaShop\PrestaShop\Adapter\Module\AdminModuleDataProvider
@@ -65,6 +66,7 @@ services:
              - "@=service('prestashop.adapter.legacy.context').getEmployeeLanguageIso()"
              - "@router"
              - "@prestashop.adapter.data_provider.addon"
+             - "@prestashop.categories_provider"
         decorates: prestashop.core.admin.data_provider.module_interface
         public: false
     prestashop.adapter.admin.controller.attribute_generator:
@@ -72,24 +74,14 @@ services:
 
     #SECURITY
     prestashop.adapter.security.admin:
-        class: %AdapterSecurityAdminClass%
+        class: "%AdapterSecurityAdminClass%"
         arguments:
             - "@prestashop.adapter.legacy.context"
             - "@security.token_storage"
+            - "@prestashop.security.admin.provider"
         tags:
             - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
     prestashop.security.admin.provider:
         class: PrestaShopBundle\Security\Admin\EmployeeProvider
         arguments:
             - "@prestashop.adapter.legacy.context"
-
-    #LISTENER
-    prestashop.core.admin.controllers.listener:
-        class: PrestaShopBundle\Service\Listeners\AdminControllersListener
-        arguments:
-            - "@router"
-            - "@twig"
-            - "@prestashop.adapter.translator"
-        tags:
-            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
-

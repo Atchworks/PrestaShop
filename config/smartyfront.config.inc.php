@@ -55,7 +55,7 @@ function smartyEscape($string, $esc_type = 'html', $char_set = null, $double_enc
         'modifier.escape.php'
     ]);
     global $smarty;
-    if ($esc_type === 'html' && $smarty->escape_html) {
+    if (($esc_type === 'html' || $esc_type === 'htmlall') && $smarty->escape_html) {
         return $string;
     } else {
         return smarty_modifier_escape($string, $esc_type, $char_set, $double_encode);
@@ -177,7 +177,44 @@ function smartyTranslate($params, &$smarty)
         $params['mod'] = false;
     }
     if (!isset($params['sprintf'])) {
-        $params['sprintf'] = null;
+        $params['sprintf'] = array();
+    }
+
+    if (!empty($params['d'])) {
+        if (isset($params['tags'])) {
+            $backTrace = debug_backtrace();
+
+            $errorMessage = sprintf(
+                'Unable to translate "%s" in %s. tags() is not supported anymore, please use sprintf().',
+                $params['s'],
+                $backTrace[0]['args'][1]->template_resource
+            );
+
+            if (_PS_MODE_DEV_) {
+                throw new Exception($errorMessage);
+            } else {
+                PrestaShopLogger::addLog($errorMessage);
+            }
+        }
+
+        if (!is_array($params['sprintf'])) {
+            $backTrace = debug_backtrace();
+
+            $errorMessage = sprintf(
+                'Unable to translate "%s" in %s. sprintf() parameter should be an array.',
+                $params['s'],
+                $backTrace[0]['args'][1]->template_resource
+            );
+
+            if (_PS_MODE_DEV_) {
+                throw new Exception($errorMessage);
+            } else {
+                PrestaShopLogger::addLog($errorMessage);
+                return $params['s'];
+            }
+        }
+
+        return Context::getContext()->getTranslator()->trans($params['s'], $params['sprintf'], $params['d']);
     }
 
     $string = str_replace('\'', '\\\'', $params['s']);

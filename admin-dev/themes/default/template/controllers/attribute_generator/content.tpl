@@ -50,9 +50,9 @@
 			if (!isNaN(element_price))
 			{
 				if (element_has_tax)
-					other_element_price = parseFloat(element_price / ((product_tax / 100) + 1)).toFixed(6);
+					other_element_price = ps_round(parseFloat(element_price / ((product_tax / 100) + 1)), 6);
 				else
-					other_element_price = ps_round(parseFloat(element_price * ((product_tax / 100) + 1)), 2).toFixed(2);
+					other_element_price = ps_round(parseFloat(element_price * ((product_tax / 100) + 1)), 6);
 			}
 
 			$('#related_to_'+element.attr('name')).val(other_element_price);
@@ -63,7 +63,7 @@
 
 <div class="leadin">{block name="leadin"}{/block}</div>
 
-{if $generate}<div class="alert alert-success clearfix">{l s='%d product(s) successfully created.' sprintf=$combinations_size}</div>{/if}
+{if $generate}<div class="alert alert-success clearfix">{l s='%d product(s) successfully created.' sprintf=[$combinations_size]}</div>{/if}
 <form enctype="multipart/form-data" method="post" id="generator" action="{$url_generator}">
 	<div class="panel">
 		<h3>
@@ -86,8 +86,8 @@
 					</select>
 				</div>
 				<div class="form-group">
-					<button type="button" class="btn btn-default" onclick="del_attr_multiple();"><i class="icon-minus-sign"></i> {l s='Delete'}</button>
-					<button type="button" class="btn btn-default pull-right" onclick="add_attr_multiple();"><i class="icon-plus-sign"></i> {l s='Add'}</button>
+					<button type="button" class="btn btn-default" onclick="del_attr_multiple();"><i class="icon-minus-sign"></i> {l s='Delete' d='Admin.Actions'}</button>
+					<button type="button" class="btn btn-default pull-right" onclick="add_attr_multiple();"><i class="icon-plus-sign"></i> {l s='Add' d='Admin.Actions'}</button>
 				</div>
 			</div>
 			<div class="col-lg-8 col-lg-offset-1">

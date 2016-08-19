@@ -43,6 +43,8 @@ class AdminImagesControllerCore extends AdminController
         $this->addRowAction('edit');
         $this->addRowAction('delete');
 
+        parent::__construct();
+
         $this->bulk_actions = array(
             'delete' => array(
                 'text' => $this->l('Delete selected'),
@@ -52,13 +54,13 @@ class AdminImagesControllerCore extends AdminController
         );
 
         $this->fields_list = array(
-            'id_image_type' => array('title' => $this->l('ID'), 'align' => 'center', 'class' => 'fixed-width-xs'),
-            'name' => array('title' => $this->l('Name')),
+            'id_image_type' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'class' => 'fixed-width-xs'),
+            'name' => array('title' => $this->trans('Name', array(), 'Admin.Global')),
             'width' => array('title' => $this->l('Width'),  'suffix' => ' px'),
             'height' => array('title' => $this->l('Height'),  'suffix' => ' px'),
             'products' => array('title' => $this->l('Products'), 'align' => 'center', 'type' => 'bool', 'callback' => 'printEntityActiveIcon', 'orderby' => false),
             'categories' => array('title' => $this->l('Categories'), 'align' => 'center', 'type' => 'bool', 'callback' => 'printEntityActiveIcon', 'orderby' => false),
-            'manufacturers' => array('title' => $this->l('Manufacturers'), 'align' => 'center', 'type' => 'bool', 'callback' => 'printEntityActiveIcon', 'orderby' => false),
+            'manufacturers' => array('title' => $this->l('Brands'), 'align' => 'center', 'type' => 'bool', 'callback' => 'printEntityActiveIcon', 'orderby' => false),
             'suppliers' => array('title' => $this->l('Suppliers'), 'align' => 'center', 'type' => 'bool', 'callback' => 'printEntityActiveIcon', 'orderby' => false),
             'stores' => array('title' => $this->l('Stores'), 'align' => 'center', 'type' => 'bool', 'callback' => 'printEntityActiveIcon', 'orderby' => false)
         );
@@ -174,7 +176,7 @@ class AdminImagesControllerCore extends AdminController
                         'visibility' => Shop::CONTEXT_ALL,
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save')),
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions')),
             ),
         );
 
@@ -232,12 +234,12 @@ class AdminImagesControllerCore extends AdminController
                         array(
                             'id' => 'products_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'products_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         ),
                     )
                 ),
@@ -253,32 +255,32 @@ class AdminImagesControllerCore extends AdminController
                         array(
                             'id' => 'categories_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'categories_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         ),
                     )
                 ),
                 array(
                     'type' => 'switch',
-                    'label' => $this->l('Manufacturers'),
+                    'label' => $this->l('Brands'),
                     'name' => 'manufacturers',
                     'required' => false,
                     'is_bool' => true,
-                    'hint' => $this->l('This type will be used for Manufacturer images.'),
+                    'hint' => $this->l('This type will be used for Brand images.'),
                     'values' => array(
                         array(
                             'id' => 'manufacturers_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'manufacturers_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         ),
                     )
                 ),
@@ -293,12 +295,12 @@ class AdminImagesControllerCore extends AdminController
                         array(
                             'id' => 'suppliers_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'suppliers_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         ),
                     )
                 ),
@@ -313,22 +315,20 @@ class AdminImagesControllerCore extends AdminController
                         array(
                             'id' => 'stores_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'stores_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         ),
                     )
                 ),
             ),
             'submit' => array(
-                'title' => $this->l('Save')
+                'title' => $this->trans('Save', array(), 'Admin.Actions')
             )
         );
-
-        parent::__construct();
     }
 
     public function postProcess()
@@ -339,29 +339,29 @@ class AdminImagesControllerCore extends AdminController
         }
 
         if (Tools::isSubmit('submitRegenerate'.$this->table)) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 if ($this->_regenerateThumbnails(Tools::getValue('type'), Tools::getValue('erase'))) {
                     Tools::redirectAdmin(self::$currentIndex.'&conf=9'.'&token='.$this->token);
                 }
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to edit this.');
+                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
         } elseif (Tools::isSubmit('submitMoveImages'.$this->table)) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 if ($this->_moveImagesToNewFileSystem()) {
                     Tools::redirectAdmin(self::$currentIndex.'&conf=25'.'&token='.$this->token);
                 }
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to edit this.');
+                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
         } elseif (Tools::isSubmit('submitOptions'.$this->table)) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 if ((int)Tools::getValue('PS_JPEG_QUALITY') < 0
                     || (int)Tools::getValue('PS_JPEG_QUALITY') > 100) {
-                    $this->errors[] = Tools::displayError('Incorrect value for the selected JPEG image compression.');
+                    $this->errors[] = $this->trans('Incorrect value for the selected JPEG image compression.', array(), 'Admin.Design.Notification');
                 } elseif ((int)Tools::getValue('PS_PNG_QUALITY') < 0
                     || (int)Tools::getValue('PS_PNG_QUALITY') > 9) {
-                    $this->errors[] = Tools::displayError('Incorrect value for the selected PNG image compression.');
+                    $this->errors[] = $this->trans('Incorrect value for the selected PNG image compression.', array(), 'Admin.Design.Notification');
                 } elseif (!Configuration::updateValue('PS_IMAGE_QUALITY', Tools::getValue('PS_IMAGE_QUALITY'))
                     || !Configuration::updateValue('PS_JPEG_QUALITY', Tools::getValue('PS_JPEG_QUALITY'))
                     || !Configuration::updateValue('PS_PNG_QUALITY', Tools::getValue('PS_PNG_QUALITY'))) {
@@ -371,7 +371,7 @@ class AdminImagesControllerCore extends AdminController
                 }
                 return parent::postProcess();
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to edit this.');
+                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
         } else {
             return parent::postProcess();
@@ -386,7 +386,7 @@ class AdminImagesControllerCore extends AdminController
     protected function _childValidation()
     {
         if (!Tools::getValue('id_image_type') && Validate::isImageTypeName($typeName = Tools::getValue('name')) && ImageType::typeAlreadyExists($typeName)) {
-            $this->errors[] = Tools::displayError('This name already exists.');
+            $this->errors[] = $this->trans('This name already exists.', array(), 'Admin.Design.Notification');
         }
     }
 
@@ -397,7 +397,7 @@ class AdminImagesControllerCore extends AdminController
     {
         $types = array(
             'categories' => $this->l('Categories'),
-            'manufacturers' => $this->l('Manufacturers'),
+            'manufacturers' => $this->l('Brands'),
             'suppliers' => $this->l('Suppliers'),
             'products' => $this->l('Products'),
             'stores' => $this->l('Stores')
@@ -497,14 +497,14 @@ class AdminImagesControllerCore extends AdminController
 
                         if (!file_exists($newDir.substr($image, 0, -4).'-'.stripslashes($imageType['name']).'.jpg')) {
                             if (!file_exists($dir.$image) || !filesize($dir.$image)) {
-                                $this->errors[] = sprintf(Tools::displayError('Source file does not exist or is empty (%s)'), $dir.$image);
+                                $this->errors[] = $this->trans('Source file does not exist or is empty (%filepath%)', array('%filepath%' => $dir.$image), 'Admin.Design.Notification');
                             } elseif (!ImageManager::resize($dir.$image, $newDir.substr(str_replace('_thumb.', '.', $image), 0, -4).'-'.stripslashes($imageType['name']).'.jpg', (int)$imageType['width'], (int)$imageType['height'])) {
-                                $this->errors[] = sprintf(Tools::displayError('Failed to resize image file (%s)'), $dir.$image);
+                                $this->errors[] = $this->trans('Failed to resize image file (%filepath%)', array('%filepath%' => $dir.$image), 'Admin.Design.Notification');
                             }
 
                             if ($generate_hight_dpi_images) {
                                 if (!ImageManager::resize($dir.$image, $newDir.substr($image, 0, -4).'-'.stripslashes($imageType['name']).'2x.jpg', (int)$imageType['width']*2, (int)$imageType['height']*2)) {
-                                    $this->errors[] = sprintf(Tools::displayError('Failed to resize image file to high resolution (%s)'), $dir.$image);
+                                    $this->errors[] = $this->trans('Failed to resize image file to high resolution (%filepath%)', array('%filepath%' => $dir.$image), 'Admin.Design.Notification');
                                 }
                             }
                         }
@@ -523,18 +523,39 @@ class AdminImagesControllerCore extends AdminController
                     foreach ($type as $imageType) {
                         if (!file_exists($dir.$imageObj->getExistingImgPath().'-'.stripslashes($imageType['name']).'.jpg')) {
                             if (!ImageManager::resize($existing_img, $dir.$imageObj->getExistingImgPath().'-'.stripslashes($imageType['name']).'.jpg', (int)$imageType['width'], (int)$imageType['height'])) {
-                                $this->errors[] = sprintf(Tools::displayError('Original image is corrupt (%s) for product ID %2$d or bad permission on folder'), $existing_img, (int)$imageObj->id_product);
+                                $this->errors[] = $this->trans(
+                                    'Original image is corrupt (%filename%) for product ID %id% or bad permission on folder.',
+                                    array(
+                                        '%filename%' => $existing_img,
+                                        '%id%' => (int)$imageObj->id_product,
+                                    ),
+                                    'Admin.Design.Notification'
+                                );
                             }
 
                             if ($generate_hight_dpi_images) {
                                 if (!ImageManager::resize($existing_img, $dir.$imageObj->getExistingImgPath().'-'.stripslashes($imageType['name']).'2x.jpg', (int)$imageType['width']*2, (int)$imageType['height']*2)) {
-                                    $this->errors[] = sprintf(Tools::displayError('Original image is corrupt (%s) for product ID %2$d or bad permission on folder'), $existing_img, (int)$imageObj->id_product);
+                                    $this->errors[] = $this->trans(
+                                        'Original image is corrupt (%filename%) for product ID %id% or bad permission on folder.',
+                                        array(
+                                            '%filename%' => $existing_img,
+                                            '%id%' => (int)$imageObj->id_product,
+                                        ),
+                                        'Admin.Design.Notification'
+                                    );
                                 }
                             }
                         }
                     }
                 } else {
-                    $this->errors[] = sprintf(Tools::displayError('Original image is missing or empty (%1$s) for product ID %2$d'), $existing_img, (int)$imageObj->id_product);
+                    $this->errors[] = $this->trans(
+                        'Original image is missing or empty (%filename%) for product ID %id%',
+                        array(
+                            '%filename%' => $existing_img,
+                            '%id%' => (int)$imageObj->id_product,
+                        ),
+                        'Admin.Design.Notification'
+                    );
                 }
                 if (time() - $this->start_time > $this->max_execution_time - 4) { // stop 4 seconds before the tiemout, just enough time to process the end of the page on a slow server
                     return 'timeout';
@@ -651,11 +672,11 @@ class AdminImagesControllerCore extends AdminController
                     $this->errors[] = sprintf(Tools::displayError('Cannot write images for this type: %s. Please check the %s folder\'s writing permissions.'), $proc['type'], $proc['dir']);
                 }
             } elseif ($return == 'timeout') {
-                $this->errors[] = Tools::displayError('Only part of the images have been regenerated. The server timed out before finishing.');
+                $this->errors[] = $this->trans('Only part of the images have been regenerated. The server timed out before finishing.', array(), 'Admin.Design.Notification');
             } else {
                 if ($proc['type'] == 'products') {
                     if ($this->_regenerateWatermark($proc['dir'], $formats) == 'timeout') {
-                        $this->errors[] = Tools::displayError('Server timed out. The watermark may not have been applied to all images.');
+                        $this->errors[] = $this->trans('Server timed out. The watermark may not have been applied to all images.', array(), 'Admin.Design.Notification');
                     }
                 }
                 if (!count($this->errors)) {
@@ -687,15 +708,15 @@ class AdminImagesControllerCore extends AdminController
     protected function _moveImagesToNewFileSystem()
     {
         if (!Image::testFileSystem()) {
-            $this->errors[] = Tools::displayError('Error: Your server configuration is not compatible with the new image system. No images were moved.');
+            $this->errors[] = $this->trans('Error: Your server configuration is not compatible with the new image system. No images were moved.', array(), 'Admin.Design.Notification');
         } else {
             ini_set('max_execution_time', $this->max_execution_time); // ini_set may be disabled, we need the real value
             $this->max_execution_time = (int)ini_get('max_execution_time');
             $result = Image::moveToNewFileSystem($this->max_execution_time);
             if ($result === 'timeout') {
-                $this->errors[] = Tools::displayError('Not all images have been moved. The server timed out before finishing. Click on "Move images" again to resume the moving process.');
+                $this->errors[] = $this->trans('Not all images have been moved. The server timed out before finishing. Click on "Move images" again to resume the moving process.', array(), 'Admin.Design.Notification');
             } elseif ($result === false) {
-                $this->errors[] = Tools::displayError('Error: Some -- or all -- images cannot be moved.');
+                $this->errors[] = $this->trans('Error: Some -- or all -- images cannot be moved.', array(), 'Admin.Design.Notification');
             }
         }
         return (count($this->errors) > 0 ? false : true);

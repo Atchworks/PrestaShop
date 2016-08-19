@@ -38,6 +38,8 @@ class AdminTaxesControllerCore extends AdminController
         $this->addRowAction('edit');
         $this->addRowAction('delete');
 
+        parent::__construct();
+
         $this->bulk_actions = array(
             'delete' => array(
                 'text' => $this->l('Delete selected'),
@@ -47,10 +49,10 @@ class AdminTaxesControllerCore extends AdminController
         );
 
         $this->fields_list = array(
-            'id_tax' => array('title' => $this->l('ID'), 'align' => 'center', 'class' => 'fixed-width-xs'),
-            'name' => array('title' => $this->l('Name'), 'width' => 'auto'),
+            'id_tax' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'class' => 'fixed-width-xs'),
+            'name' => array('title' => $this->trans('Name', array(), 'Admin.Global'), 'width' => 'auto'),
             'rate' => array('title' => $this->l('Rate'), 'align' => 'center', 'suffix' => '%' , 'class' => 'fixed-width-md'),
-            'active' => array('title' => $this->l('Enabled'), 'width' => 25, 'align' => 'center', 'active' => 'status', 'type' => 'bool', 'orderby' => false, 'class' => 'fixed-width-sm', 'remove_onclick' => true)
+            'active' => array('title' => $this->trans('Enabled', array(), 'Admin.Global'), 'width' => 25, 'align' => 'center', 'active' => 'status', 'type' => 'bool', 'orderby' => false, 'class' => 'fixed-width-sm', 'remove_onclick' => true)
             );
 
         $ecotax_desc = '';
@@ -94,7 +96,7 @@ class AdminTaxesControllerCore extends AdminController
                         'type' => 'bool'
                         ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
         );
 
@@ -108,8 +110,6 @@ class AdminTaxesControllerCore extends AdminController
                 'list' => TaxRulesGroup::getTaxRulesGroupsForOptions()
                 );
         }
-
-        parent::__construct();
 
         $this->_where .= ' AND a.deleted = 0';
     }
@@ -140,7 +140,7 @@ class AdminTaxesControllerCore extends AdminController
     public function displayDeleteLink($token = null, $id)
     {
         if (!array_key_exists('Delete', self::$cache_lang)) {
-            self::$cache_lang['Delete'] = $this->l('Delete');
+            self::$cache_lang['Delete'] = $this->trans('Delete', array(), 'Admin.Actions');
         }
 
         if (!array_key_exists('DeleteItem', self::$cache_lang)) {
@@ -196,7 +196,7 @@ class AdminTaxesControllerCore extends AdminController
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'required' => true,
                     'lang' => true,
@@ -212,7 +212,7 @@ class AdminTaxesControllerCore extends AdminController
                 ),
                 array(
                     'type' => 'switch',
-                    'label' => $this->l('Enable'),
+                    'label' => $this->trans('Enable', array(), 'Admin.Actions'),
                     'name' => 'active',
                     'required' => false,
                     'is_bool' => true,
@@ -220,18 +220,18 @@ class AdminTaxesControllerCore extends AdminController
                         array(
                             'id' => 'active_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'active_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         )
                     )
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save')
+                'title' => $this->trans('Save', array(), 'Admin.Actions')
             )
         );
 
@@ -255,12 +255,12 @@ class AdminTaxesControllerCore extends AdminController
                         $result = $object->update(false, false);
 
                         if (!$result) {
-                            $this->errors[] = Tools::displayError('An error occurred while updating an object.').' <b>'.$this->table.'</b>';
+                            $this->errors[] = $this->trans('An error occurred while updating an object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b>';
                         } elseif ($this->postImage($object->id)) {
                             Tools::redirectAdmin(self::$currentIndex.'&id_'.$this->table.'='.$object->id.'&conf=4'.'&token='.$this->token);
                         }
                     } else {
-                        $this->errors[] = Tools::displayError('An error occurred while updating an object.').' <b>'.$this->table.'</b> '.Tools::displayError('(cannot load object)');
+                        $this->errors[] = $this->trans('An error occurred while updating an object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b> '.$this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
                     }
                 }
 
@@ -270,7 +270,7 @@ class AdminTaxesControllerCore extends AdminController
                     $object = new $this->className();
                     $this->copyFromPost($object, $this->table);
                     if (!$object->add()) {
-                        $this->errors[] = Tools::displayError('An error occurred while creating an object.').' <b>'.$this->table.'</b>';
+                        $this->errors[] = $this->trans('An error occurred while creating an object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b>';
                     } elseif (($_POST['id_'.$this->table] = $object->id /* voluntary */) && $this->postImage($object->id) && $this->_redirect) {
                         Tools::redirectAdmin(self::$currentIndex.'&id_'.$this->table.'='.$object->id.'&conf=3'.'&token='.$this->token);
                     }

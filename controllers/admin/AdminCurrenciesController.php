@@ -41,15 +41,15 @@ class AdminCurrenciesControllerCore extends AdminController
         $this->lang = false;
         $this->cldr = Tools::getCldr(Context::getContext());
 
+        parent::__construct();
+
         $this->fields_list = array(
             'name' => array('title' => $this->l('Currency'), 'orderby' => false, 'search' => false),
             'sign' => array('title' => $this->l('Symbol'), 'width' => 20, 'align' => 'center', 'orderby' => false, 'search' => false, 'class' => 'fixed-width-xs'),
             'iso_code' => array('title' => $this->l('ISO code'), 'align' => 'center', 'class' => 'fixed-width-xs'),
             'conversion_rate' => array('title' => $this->l('Exchange rate'), 'type' => 'float', 'align' => 'center', 'width' => 130, 'search' => false, 'filter_key' => 'currency_shop!conversion_rate'),
-            'active' => array('title' => $this->l('Enabled'), 'width' => 25, 'align' => 'center', 'active' => 'status', 'type' => 'bool', 'orderby' => false, 'class' => 'fixed-width-sm'),
+            'active' => array('title' => $this->trans('Enabled', array(), 'Admin.Global'), 'width' => 25, 'align' => 'center', 'active' => 'status', 'type' => 'bool', 'orderby' => false, 'class' => 'fixed-width-sm'),
         );
-
-        parent::__construct();
 
         $this->_select .= 'currency_shop.conversion_rate conversion_rate';
         $this->_join .= Shop::addSqlAssociation('currency', 'a');
@@ -120,7 +120,7 @@ class AdminCurrenciesControllerCore extends AdminController
                 ),
                 array(
                     'type' => 'hidden',
-                    'label' => $this->l('Enable'),
+                    'label' => $this->trans('Enable', array(), 'Admin.Actions'),
                     'name' => 'active',
                     'required' => false,
                     'is_bool' => true,
@@ -128,12 +128,12 @@ class AdminCurrenciesControllerCore extends AdminController
                         array(
                             'id' => 'active_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'active_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         )
                     )
                 )
@@ -149,7 +149,7 @@ class AdminCurrenciesControllerCore extends AdminController
         }
 
         $this->fields_form['submit'] = array(
-            'title' => $this->l('Save')
+            'title' => $this->trans('Save', array(), 'Admin.Actions')
         );
 
         //form preselect : define the default currency or object value
@@ -181,8 +181,8 @@ class AdminCurrenciesControllerCore extends AdminController
                 return true;
             }
         } else {
-            $this->errors[] = Tools::displayError('An error occurred while deleting the object.').'
-                <b>'.$this->table.'</b> '.Tools::displayError('(cannot load object)');
+            $this->errors[] = $this->trans('An error occurred while deleting the object.', array(), 'Admin.Notifications.Error').'
+                <b>'.$this->table.'</b> '.$this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
         }
 
         return false;
@@ -197,8 +197,8 @@ class AdminCurrenciesControllerCore extends AdminController
                 return true;
             }
         } else {
-            $this->errors[] = Tools::displayError('An error occurred while updating the status for an object.').'
-				<b>'.$this->table.'</b> '.Tools::displayError('(cannot load object)');
+            $this->errors[] = $this->trans('An error occurred while updating the status for an object.', array(), 'Admin.Notifications.Error').'
+				<b>'.$this->table.'</b> '.$this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
         }
 
         return false;
@@ -272,17 +272,17 @@ class AdminCurrenciesControllerCore extends AdminController
     public function initProcess()
     {
         if (Tools::isSubmit('SubmitExchangesRates')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'exchangeRates';
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to edit this.');
+                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
         }
         if (Tools::isSubmit('submitAddcurrency') && !Tools::getValue('id_currency') && Currency::exists(Tools::getValue('iso_code'))) {
-            $this->errors[] = Tools::displayError('This currency already exists.');
+            $this->errors[] = $this->trans('This currency already exists.', array(), 'Admin.International.Notification');
         }
         if (Tools::isSubmit('submitAddcurrency') && (float)Tools::getValue('conversion_rate') <= 0) {
-            $this->errors[] = Tools::displayError('The currency conversion rate can not be equal to 0.');
+            $this->errors[] = $this->trans('The currency conversion rate can not be equal to 0.', array(), 'Admin.International.Notification');
         }
         parent::initProcess();
     }
@@ -304,7 +304,7 @@ class AdminCurrenciesControllerCore extends AdminController
     {
         $moduleManagerBuilder = new ModuleManagerBuilder();
         $moduleManager = $moduleManagerBuilder->build();
-    
+
         if (!$moduleManager->isInstalled('cronjobs')) {
             die(json_encode(array()));
         }

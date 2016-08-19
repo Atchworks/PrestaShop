@@ -41,7 +41,7 @@ class AdminRangeWeightControllerCore extends AdminController
         $this->bulk_actions = array('delete' => array('text' => $this->l('Delete selected'), 'confirm' => $this->l('Delete selected items?')));
 
         $this->fields_list = array(
-            'id_range_weight' => array('title' => $this->l('ID'), 'align' => 'center', 'width' => 25),
+            'id_range_weight' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'width' => 25),
             'carrier_name' => array('title' => $this->l('Carrier'), 'align' => 'left', 'width' => 'auto', 'filter_key' => 'ca!name'),
             'delimiter1' => array('title' => $this->l('From'), 'width' => 86, 'type' => 'float', 'suffix' => Configuration::get('PS_WEIGHT_UNIT'), 'align' => 'right'),
             'delimiter2' => array('title' => $this->l('To'), 'width' => 86, 'type' => 'float', 'suffix' => Configuration::get('PS_WEIGHT_UNIT'), 'align' => 'right'));
@@ -138,11 +138,11 @@ class AdminRangeWeightControllerCore extends AdminController
         
         if (Tools::getValue('submitAdd'.$this->table)) {
             if (Tools::getValue('delimiter1') >= Tools::getValue('delimiter2')) {
-                $this->errors[] = Tools::displayError('Invalid range');
+                $this->errors[] = $this->trans('Invalid range', array(), 'Admin.Notifications.Error');
             } elseif (!$id && RangeWeight::rangeExist((int)Tools::getValue('id_carrier'), (float)Tools::getValue('delimiter1'), (float)Tools::getValue('delimiter2'))) {
-                $this->errors[] = Tools::displayError('The range already exists');
+                $this->errors[] = $this->trans('The range already exists', array(), 'Admin.Shipping.Notification');
             } elseif (RangeWeight::isOverlapping((int)Tools::getValue('id_carrier'), (float)Tools::getValue('delimiter1'), (float)Tools::getValue('delimiter2'), ($id ? (int)$id : null))) {
-                $this->errors[] = Tools::displayError('Error: Ranges are overlapping');
+                $this->errors[] = $this->trans('Error: Ranges are overlapping', array(), 'Admin.Shipping.Notification');
             } elseif (!count($this->errors)) {
                 parent::postProcess();
             }

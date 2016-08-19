@@ -56,17 +56,16 @@ class AddressControllerCore extends FrontController
         $this->address_form->fillWith(Tools::getAllValues());
         if (Tools::isSubmit('submitAddress')) {
             if (!$this->address_form->submit()) {
-                $this->errors[] = $this->l('Please fix the error below.');
+                $this->errors[] = $this->trans('Please fix the error below.', array(), 'Shop.Notifications.Error');
             } else {
                 if (Tools::getValue('id_address')) {
-                    $this->success[] = $this->l('Address successfully updated!');
+                    $this->success[] = $this->trans('Address successfully updated!', array(), 'Shop.Notifications.Success');
                 } else {
-                    $this->success[] = $this->l('Address successfully added!');
+                    $this->success[] = $this->trans('Address successfully added!', array(), 'Shop.Notifications.Success');
                 }
                 $this->should_redirect = true;
             }
         } elseif (($id_address = (int)Tools::getValue('id_address'))) {
-
             $addressForm = $this->address_form->loadAddressById($id_address);
 
             if ($addressForm->getAddress()->id === null) {
@@ -87,10 +86,10 @@ class AddressControllerCore extends FrontController
                     Tools::getValue('token')
                 );
                 if ($ok) {
-                    $this->success[] = $this->l('Address successfully deleted!');
+                    $this->success[] = $this->trans('Address successfully deleted!', array(), 'Shop.Notifications.Success');
                     $this->should_redirect = true;
                 } else {
-                    $this->errors[] = $this->l('Could not delete address.');
+                    $this->errors[] = $this->trans('Could not delete address.', array(), 'Shop.Notifications.Error');
                 }
             } else {
                 $this->context->smarty->assign('editing', true);
@@ -104,12 +103,7 @@ class AddressControllerCore extends FrontController
      */
     public function initContent()
     {
-        if ($this->ajax) {
-            $this->ajaxDie(json_encode([
-                'hasError'  => !empty($this->errors),
-                'errors'    => $this->errors
-            ]));
-        } elseif ($this->should_redirect) {
+        if (!$this->ajax && $this->should_redirect) {
             if (($back = Tools::getValue('back')) && Tools::secureReferrer($back)) {
                 $mod = Tools::getValue('mod');
                 $this->redirectWithNotifications('index.php?controller='.$back.($mod ? '&back='.$mod : ''));
@@ -119,7 +113,7 @@ class AddressControllerCore extends FrontController
         }
 
         parent::initContent();
-        $this->setTemplate('customer/address.tpl');
+        $this->setTemplate('customer/address', array('entity' => 'address', 'id' => Tools::getValue('id_address')));
     }
 
     public function getBreadcrumbLinks()
@@ -129,7 +123,7 @@ class AddressControllerCore extends FrontController
         $breadcrumb['links'][] = $this->addMyAccountToBreadcrumb();
 
         $breadcrumb['links'][] = [
-            'title' => $this->getTranslator()->trans('Addresses', [], 'Breadcrumb'),
+            'title' => $this->trans('Addresses', array(), 'Shop.Theme'),
             'url' => $this->context->link->getPageLink('addresses')
         ];
 

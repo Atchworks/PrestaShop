@@ -42,13 +42,13 @@ class AdminShippingControllerCore extends AdminController
         }
 
         $carrier_default_sort = array(
-            array('value' => Carrier::SORT_BY_PRICE, 'name' => $this->l('Price')),
+            array('value' => Carrier::SORT_BY_PRICE, 'name' => $this->trans('Price', array(), 'Admin.Global')),
             array('value' => Carrier::SORT_BY_POSITION, 'name' => $this->l('Position'))
         );
 
         $carrier_default_order = array(
-            array('value' => Carrier::SORT_BY_ASC, 'name' => $this->l('Ascending')),
-            array('value' => Carrier::SORT_BY_DESC, 'name' => $this->l('Descending'))
+            array('value' => Carrier::SORT_BY_ASC, 'name' => $this->trans('Ascending', array(), 'Admin.Global')),
+            array('value' => Carrier::SORT_BY_DESC, 'name' => $this->trans('Descending', array(), 'Admin.Global'))
         );
 
         $this->fields_options = array(
@@ -80,7 +80,7 @@ class AdminShippingControllerCore extends AdminController
 						<li>'.$this->l('If you set these parameters to 0, they will be disabled.').'</li>
 						<li>'.$this->l('Coupons are not taken into account when calculating free shipping.').'</li>
 					</ul>',
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'general' => array(
                 'title' => $this->l('Carrier options'),
@@ -115,7 +115,7 @@ class AdminShippingControllerCore extends AdminController
                         'list' => $carrier_default_order
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             )
         );
     }
@@ -124,7 +124,7 @@ class AdminShippingControllerCore extends AdminController
     {
         /* Shipping fees */
         if (Tools::isSubmit('submitFees'.$this->table)) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 if (($id_carrier = (int)(Tools::getValue('id_carrier'))) && $id_carrier == ($id_carrier2 = (int)(Tools::getValue('id_carrier2')))) {
                     $carrier = new Carrier($id_carrier);
                     if (Validate::isLoadedObject($carrier)) {
@@ -165,15 +165,15 @@ class AdminShippingControllerCore extends AdminController
                         $carrier->addDeliveryPrice($priceList);
                         Tools::redirectAdmin(self::$currentIndex.'&conf=6&id_carrier='.$carrier->id.'&token='.$this->token);
                     } else {
-                        $this->errors[] = Tools::displayError('An error occurred while attempting to update fees (cannot load carrier object).');
+                        $this->errors[] = $this->trans('An error occurred while attempting to update fees (cannot load carrier object).', array(), 'Admin.Shipping.Notification');
                     }
                 } elseif (isset($id_carrier2)) {
                     $_POST['id_carrier'] = $id_carrier2;
                 } else {
-                    $this->errors[] = Tools::displayError('An error occurred while attempting to update fees (cannot load carrier object).');
+                    $this->errors[] = $this->trans('An error occurred while attempting to update fees (cannot load carrier object).', array(), 'Admin.Shipping.Notification');
                 }
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to edit this.');
+                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
         } else {
             return parent::postProcess();

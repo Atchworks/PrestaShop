@@ -38,7 +38,7 @@ class AdminLanguagesControllerCore extends AdminController
         $this->deleted = false;
         $this->multishop_context = Shop::CONTEXT_ALL;
 
-        $this->context = Context::getContext();
+        parent::__construct();
 
         $this->fieldImageSettings = array(
             array(
@@ -53,7 +53,7 @@ class AdminLanguagesControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_lang' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs'
             ),
@@ -66,7 +66,7 @@ class AdminLanguagesControllerCore extends AdminController
                 'class' => 'fixed-width-xs'
             ),
             'name' => array(
-                'title' => $this->l('Name')
+                'title' => $this->trans('Name', array(), 'Admin.Global')
             ),
             'iso_code' => array(
                 'title' => $this->l('ISO code'),
@@ -85,7 +85,7 @@ class AdminLanguagesControllerCore extends AdminController
                 'title' => $this->l('Date format (full)')
             ),
             'active' => array(
-                'title' => $this->l('Enabled'),
+                'title' => $this->trans('Enabled', array(), 'Admin.Global'),
                 'align' => 'center',
                 'active' => 'status',
                 'type' => 'bool',
@@ -101,8 +101,6 @@ class AdminLanguagesControllerCore extends AdminController
             )
         );
         $this->specificConfirmDelete = $this->l('When you delete a language, all related translations in the database will be deleted. Are you sure you want to proceed?');
-
-        parent::__construct();
     }
 
     public function initPageHeaderToolbar()
@@ -144,7 +142,7 @@ class AdminLanguagesControllerCore extends AdminController
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'maxlength' => 32,
                     'required' => true
@@ -208,12 +206,12 @@ class AdminLanguagesControllerCore extends AdminController
                         array(
                             'id' => 'is_rtl_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'active_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         )
                     ),
                     'hint' => array(
@@ -231,12 +229,12 @@ class AdminLanguagesControllerCore extends AdminController
                         array(
                             'id' => 'active_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'active_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         )
                     ),
                     'hint' => $this->l('Activate this language.')
@@ -259,7 +257,7 @@ class AdminLanguagesControllerCore extends AdminController
         }
 
         $this->fields_form['submit'] = array(
-            'title' => $this->l('Save'),
+            'title' => $this->trans('Save', array(), 'Admin.Actions'),
         );
 
         /** @var Language $obj */
@@ -302,7 +300,7 @@ class AdminLanguagesControllerCore extends AdminController
             return false;
         }
         if (!$this->deleteNoPictureImages((int)$object->id)) {
-            $this->errors[] = Tools::displayError('An error occurred while deleting the object.').' <b>'.$this->table.'</b> ';
+            $this->errors[] = $this->trans('An error occurred while deleting the object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b> ';
         }
 
         return parent::processDelete();
@@ -318,7 +316,7 @@ class AdminLanguagesControllerCore extends AdminController
                     return false;
                 }
                 if (!$this->deleteNoPictureImages((int)$object->id)) {
-                    $this->errors[] = Tools::displayError('An error occurred while deleting the object.').' <b>'.$this->table.'</b> ';
+                    $this->errors[] = $this->trans('An error occurred while deleting the object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b> ';
                     return false;
                 }
             }
@@ -329,7 +327,7 @@ class AdminLanguagesControllerCore extends AdminController
     protected function checkDeletion($object)
     {
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
 
@@ -342,7 +340,7 @@ class AdminLanguagesControllerCore extends AdminController
                 return true;
             }
         } else {
-            $this->errors[] = Tools::displayError('(cannot load object)');
+            $this->errors[] = $this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
         }
 
         return false;
@@ -351,14 +349,14 @@ class AdminLanguagesControllerCore extends AdminController
     protected function checkDisableStatus($object)
     {
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
         if (!Validate::isLoadedObject($object)) {
-            $this->errors[] = Tools::displayError('An error occurred while updating the status for an object.').' <b>'.$this->table.'</b> '.Tools::displayError('(cannot load object)');
+            $this->errors[] = $this->trans('An error occurred while updating the status for an object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b> '.$this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
         } else {
             if ($object->id == (int)Configuration::get('PS_LANG_DEFAULT')) {
-                $this->errors[] = Tools::displayError('You cannot change the status of the default language.');
+                $this->errors[] = $this->trans('You cannot change the status of the default language.', array(), 'Admin.International.Notification');
             } else {
                 return true;
             }
@@ -393,12 +391,12 @@ class AdminLanguagesControllerCore extends AdminController
     public function processAdd()
     {
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
 
         if (isset($_POST['iso_code']) && !empty($_POST['iso_code']) && Validate::isLanguageIsoCode(Tools::getValue('iso_code')) && Language::getIdByIso($_POST['iso_code'])) {
-            $this->errors[] = Tools::displayError('This ISO code is already linked to another language.');
+            $this->errors[] = $this->trans('This ISO code is already linked to another language.', array(), 'Admin.International.Notification');
         }
         if ((!empty($_FILES['no_picture']['tmp_name']) || !empty($_FILES['flag']['tmp_name'])) && Validate::isLanguageIsoCode(Tools::getValue('iso_code'))) {
             if ($_FILES['no_picture']['error'] == UPLOAD_ERR_OK) {
@@ -406,7 +404,7 @@ class AdminLanguagesControllerCore extends AdminController
             }
             unset($_FILES['no_picture']);
         } else {
-            $this->errors[] = Tools::displayError('Flag and "No picture" image fields are required.');
+            $this->errors[] = $this->trans('Flag and "No picture" image fields are required.', array(), 'Admin.International.Notification');
         }
 
         return parent::processAdd();
@@ -415,7 +413,7 @@ class AdminLanguagesControllerCore extends AdminController
     public function processUpdate()
     {
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
 
@@ -457,24 +455,24 @@ class AdminLanguagesControllerCore extends AdminController
                     return false;
                 }
                 if (!ImageManager::resize($tmp_name, _PS_IMG_DIR_.'p/'.$language.'.jpg')) {
-                    $this->errors[] = Tools::displayError('An error occurred while copying "No Picture" image to your product folder.');
+                    $this->errors[] = $this->trans('An error occurred while copying "No Picture" image to your product folder.', array(), 'Admin.International.Notification');
                 }
                 if (!ImageManager::resize($tmp_name, _PS_IMG_DIR_.'c/'.$language.'.jpg')) {
-                    $this->errors[] = Tools::displayError('An error occurred while copying "No picture" image to your category folder.');
+                    $this->errors[] = $this->trans('An error occurred while copying "No picture" image to your category folder.', array(), 'Admin.International.Notification');
                 }
                 if (!ImageManager::resize($tmp_name, _PS_IMG_DIR_.'m/'.$language.'.jpg')) {
-                    $this->errors[] = Tools::displayError('An error occurred while copying "No picture" image to your manufacturer folder.');
+                    $this->errors[] = $this->trans('An error occurred while copying "No picture" image to your brand folder.', array(), 'Admin.International.Notification');
                 } else {
                     $images_types = ImageType::getImagesTypes('products');
                     foreach ($images_types as $k => $image_type) {
                         if (!ImageManager::resize($tmp_name, _PS_IMG_DIR_.'p/'.$language.'-default-'.stripslashes($image_type['name']).'.jpg', $image_type['width'], $image_type['height'])) {
-                            $this->errors[] = Tools::displayError('An error occurred while resizing "No picture" image to your product directory.');
+                            $this->errors[] = $this->trans('An error occurred while resizing "No picture" image to your product directory.', array(), 'Admin.International.Notification');
                         }
                         if (!ImageManager::resize($tmp_name, _PS_IMG_DIR_.'c/'.$language.'-default-'.stripslashes($image_type['name']).'.jpg', $image_type['width'], $image_type['height'])) {
-                            $this->errors[] = Tools::displayError('An error occurred while resizing "No picture" image to your category directory.');
+                            $this->errors[] = $this->trans('An error occurred while resizing "No picture" image to your category directory.', array(), 'Admin.International.Notification');
                         }
                         if (!ImageManager::resize($tmp_name, _PS_IMG_DIR_.'m/'.$language.'-default-'.stripslashes($image_type['name']).'.jpg', $image_type['width'], $image_type['height'])) {
-                            $this->errors[] = Tools::displayError('An error occurred while resizing "No picture" image to your manufacturer directory.');
+                            $this->errors[] = $this->trans('An error occurred while resizing "No picture" image to your brand directory.', array(), 'Admin.International.Notification');
                         }
                     }
                 }
@@ -498,14 +496,14 @@ class AdminLanguagesControllerCore extends AdminController
             foreach ($images_types as $k => $image_type) {
                 if (file_exists($dir.$language.'-default-'.stripslashes($image_type['name']).'.jpg')) {
                     if (!unlink($dir.$language.'-default-'.stripslashes($image_type['name']).'.jpg')) {
-                        $this->errors[] = Tools::displayError('An error occurred during image deletion process.');
+                        $this->errors[] = $this->trans('An error occurred during image deletion process.', array(), 'Admin.International.Notification');
                     }
                 }
             }
 
             if (file_exists($dir.$language.'.jpg')) {
                 if (!unlink($dir.$language.'.jpg')) {
-                    $this->errors[] = Tools::displayError('An error occurred during image deletion process.');
+                    $this->errors[] = $this->trans('An error occurred during image deletion process.', array(), 'Admin.International.Notification');
                 }
             }
         }

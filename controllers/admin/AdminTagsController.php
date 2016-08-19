@@ -36,9 +36,11 @@ class AdminTagsControllerCore extends AdminController
         $this->table = 'tag';
         $this->className = 'Tag';
 
+        parent::__construct();
+
         $this->fields_list = array(
             'id_tag' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs'
             ),
@@ -47,7 +49,7 @@ class AdminTagsControllerCore extends AdminController
                 'filter_key' => 'l!name'
             ),
             'name' => array(
-                'title' => $this->l('Name'),
+                'title' => $this->trans('Name', array(), 'Admin.Global'),
                 'filter_key' => 'a!name'
             ),
             'products' => array(
@@ -65,8 +67,6 @@ class AdminTagsControllerCore extends AdminController
                 'confirm' => $this->l('Delete selected items?')
             )
         );
-
-        parent::__construct();
     }
 
     public function initPageHeaderToolbar()
@@ -100,7 +100,7 @@ class AdminTagsControllerCore extends AdminController
 
     public function postProcess()
     {
-        if ($this->tabAccess['edit'] === '1' && Tools::getValue('submitAdd'.$this->table)) {
+        if ($this->access('edit') && Tools::getValue('submitAdd'.$this->table)) {
             if (($id = (int)Tools::getValue($this->identifier)) && ($obj = new $this->className($id)) && Validate::isLoadedObject($obj)) {
                 /** @var Tag $obj */
                 $previous_products = $obj->getProducts();
@@ -138,7 +138,7 @@ class AdminTagsControllerCore extends AdminController
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'required' => true
                 ),
@@ -159,7 +159,7 @@ class AdminTagsControllerCore extends AdminController
                 'products_unselected' => $obj->getProducts(false)
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
 

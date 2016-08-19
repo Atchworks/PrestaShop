@@ -45,17 +45,17 @@ class AdminRequestSqlControllerCore extends AdminController
         $this->lang = false;
         $this->export = true;
 
-        $this->context = Context::getContext();
+        parent::__construct();
 
         $this->fields_list = array(
-            'id_request_sql' => array('title' => $this->l('ID'), 'class' => 'fixed-width-xs'),
+            'id_request_sql' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'class' => 'fixed-width-xs'),
             'name' => array('title' => $this->l('SQL query Name')),
             'sql' => array('title' => $this->l('SQL query'))
         );
 
         $this->fields_options = array(
             'general' => array(
-                'title' =>    $this->l('Settings'),
+                'title' =>    $this->trans('Settings', array(), 'Admin.Global'),
                 'fields' =>    array(
                     'PS_ENCODING_FILE_MANAGER_SQL' => array(
                         'title' => $this->l('Select your default file encoding'),
@@ -66,7 +66,7 @@ class AdminRequestSqlControllerCore extends AdminController
                         'visibility' => Shop::CONTEXT_ALL
                     )
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             )
         );
 
@@ -77,8 +77,6 @@ class AdminRequestSqlControllerCore extends AdminController
                 'icon' => 'icon-trash'
             )
         );
-
-        parent::__construct();
     }
 
     public function renderOptions()
@@ -157,7 +155,7 @@ class AdminRequestSqlControllerCore extends AdminController
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save')
+                'title' => $this->trans('Save', array(), 'Admin.Actions')
             )
         );
 
@@ -172,7 +170,7 @@ class AdminRequestSqlControllerCore extends AdminController
     {
         /* PrestaShop demo mode */
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
         return parent::postProcess();
@@ -186,7 +184,7 @@ class AdminRequestSqlControllerCore extends AdminController
     {
         /* PrestaShop demo mode */
         if (_PS_MODE_DEMO_) {
-            die(Tools::displayError('This functionality has been disabled.'));
+            die($this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error'));
         }
         if ($table = Tools::GetValue('table')) {
             $request_sql = new RequestSql();
@@ -261,7 +259,7 @@ class AdminRequestSqlControllerCore extends AdminController
 
         $tpl->assign(array(
             'href' => self::$currentIndex.'&token='.$this->token.'&'.$this->identifier.'='.$id.'&export'.$this->table.'=1',
-            'action' => $this->l('Export')
+            'action' => $this->trans('Export', array(), 'Admin.Actions')
         ));
 
         return $tpl->fetch();
@@ -295,7 +293,7 @@ class AdminRequestSqlControllerCore extends AdminController
             }
             $this->content .= $this->renderView();
         } elseif ($this->display == 'export') {
-            $this->generateExport();
+            $this->processExport();
         } elseif (!$this->ajax) {
             $this->content .= $this->renderList();
             $this->content .= $this->renderOptions();
@@ -326,7 +324,7 @@ class AdminRequestSqlControllerCore extends AdminController
     /**
      * Genrating a export file
      */
-    public function generateExport()
+    public function processExport($textDelimiter = '"')
     {
         $id = Tools::getValue($this->identifier);
         $export_dir = defined('_PS_HOST_MODE_') ? _PS_ROOT_DIR_.'/export/' : _PS_ADMIN_DIR_.'/export/';
@@ -346,7 +344,7 @@ class AdminRequestSqlControllerCore extends AdminController
                 foreach ($results as $result) {
                     fputs($csv, "\n");
                     foreach ($tab_key as $name) {
-                        fputs($csv, '"'.strip_tags($result[$name]).'";');
+                        fputs($csv, $textDelimiter.strip_tags($result[$name]).$textDelimiter.';');
                     }
                 }
                 if (file_exists($export_dir.$file)) {
@@ -366,7 +364,7 @@ class AdminRequestSqlControllerCore extends AdminController
                         readfile($export_dir.$file);
                         die();
                     } else {
-                        $this->errors[] = Tools::DisplayError('The file is too large and can not be downloaded. Please use the LIMIT clause in this query.');
+                        $this->errors[] = $this->trans('The file is too large and can not be downloaded. Please use the LIMIT clause in this query.', array(), 'Admin.Parameters.Notification');
                     }
                 }
             }
@@ -384,13 +382,22 @@ class AdminRequestSqlControllerCore extends AdminController
             switch ($key) {
                 case 'checkedFrom':
                     if (isset($e[$key]['table'])) {
-                        $this->errors[] = sprintf(Tools::displayError('The "%s" table does not exist.'), $e[$key]['table']);
-                    } elseif (isset($e[$key]['attribut'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" attribute does not exist in the "%2$s" table.'),
-                            $e[$key]['attribut'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%tablename%" table does not exist.',
+                            array(
+                                '%tablename%' => $e[$key]['table'],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
+                    } elseif (isset($e[$key]['attribut'])) {
+                        $this->errors[] = $this->trans(
+                                'The "%attribute%" attribute does not exist in the "%table%" table.',
+                                array(
+                                    '%attribute%' => $e[$key]['attribut'][0],
+                                    '%table%' => $e[$key]['attribut'][1],
+                                ),
+                                'Admin.Parameters.Notification'
+                            );
                     } else {
                         $this->errors[] = Tools::displayError('Undefined "checkedFrom" error');
                     }
@@ -398,15 +405,24 @@ class AdminRequestSqlControllerCore extends AdminController
 
                 case 'checkedSelect':
                     if (isset($e[$key]['table'])) {
-                        $this->errors[] = sprintf(Tools::displayError('The "%s" table does not exist.'), $e[$key]['table']);
+                        $this->errors[] = $this->trans(
+                            'The "%tablename%" table does not exist.',
+                            array(
+                                '%tablename%' => $e[$key]['table'],
+                            ),
+                            'Admin.Parameters.Notification'
+                        );
                     } elseif (isset($e[$key]['attribut'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" attribute does not exist in the "%2$s" table.'),
-                            $e[$key]['attribut'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%attribute%" attribute does not exist in the "%table%" table.',
+                            array(
+                                '%attribute%' => $e[$key]['attribut'][0],
+                                '%table%' => $e[$key]['attribut'][1],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
                     } elseif (isset($e[$key]['*'])) {
-                        $this->errors[] = Tools::displayError('The "*" operator cannot be used in a nested query.');
+                        $this->errors[] = $this->trans('The "*" operator cannot be used in a nested query.', array(), 'Admin.Parameters.Notification');
                     } else {
                         $this->errors[] = Tools::displayError('Undefined "checkedSelect" error');
                     }
@@ -414,12 +430,21 @@ class AdminRequestSqlControllerCore extends AdminController
 
                 case 'checkedWhere':
                     if (isset($e[$key]['operator'])) {
-                        $this->errors[] = sprintf(Tools::displayError('The operator "%s" is incorrect.'), $e[$key]['operator']);
+                        $this->errors[] = $this->trans(
+                            'The operator "%s" is incorrect.',
+                            array(
+                                '%operator%' => $e[$key]['operator'],
+                            ),
+                            'Admin.Parameters.Notification'
+                        );
                     } elseif (isset($e[$key]['attribut'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" attribute does not exist in the "%2$s" table.'),
-                            $e[$key]['attribut'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%attribute%" attribute does not exist in the "%table%" table.',
+                            array(
+                                '%attribute%' => $e[$key]['attribut'][0],
+                                '%table%' => $e[$key]['attribut'][1],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
                     } else {
                         $this->errors[] = Tools::displayError('Undefined "checkedWhere" error');
@@ -428,12 +453,21 @@ class AdminRequestSqlControllerCore extends AdminController
 
                 case 'checkedHaving':
                     if (isset($e[$key]['operator'])) {
-                        $this->errors[] = sprintf(Tools::displayError('The "%s" operator is incorrect.'), $e[$key]['operator']);
+                        $this->errors[] = $this->trans(
+                            'The "%operator%" operator is incorrect.',
+                            array(
+                                '%operator%' => $e[$key]['operator']
+                            ),
+                            'Admin.Parameters.Notification'
+                        );
                     } elseif (isset($e[$key]['attribut'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" attribute does not exist in the "%2$s" table.'),
-                            $e[$key]['attribut'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%attribute%" attribute does not exist in the "%table%" table.',
+                            array(
+                                '%attribute%' => $e[$key]['attribut'][0],
+                                '%table%' => $e[$key]['attribut'][1],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
                     } else {
                         $this->errors[] = Tools::displayError('Undefined "checkedHaving" error');
@@ -442,10 +476,13 @@ class AdminRequestSqlControllerCore extends AdminController
 
                 case 'checkedOrder':
                     if (isset($e[$key]['attribut'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" attribute does not exist in the "%2$s" table.'),
-                            $e[$key]['attribut'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%attribute%" attribute does not exist in the "%table%" table.',
+                            array(
+                                '%attribute%' => $e[$key]['attribut'][0],
+                                '%table%' => $e[$key]['attribut'][1],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
                     } else {
                         $this->errors[] = Tools::displayError('Undefined "checkedOrder" error');
@@ -454,10 +491,13 @@ class AdminRequestSqlControllerCore extends AdminController
 
                 case 'checkedGroupBy':
                     if (isset($e[$key]['attribut'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" attribute does not exist in the "%2$s" table.'),
-                            $e[$key]['attribut'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%attribute%" attribute does not exist in the "%table%" table.',
+                            array(
+                                '%attribute%' => $e[$key]['attribut'][0],
+                                '%table%' => $e[$key]['attribut'][1],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
                     } else {
                         $this->errors[] = Tools::displayError('Undefined "checkedGroupBy" error');
@@ -465,27 +505,30 @@ class AdminRequestSqlControllerCore extends AdminController
                 break;
 
                 case 'checkedLimit':
-                    $this->errors[] = Tools::displayError('The LIMIT clause must contain numeric arguments.');
+                    $this->errors[] = $this->trans('The LIMIT clause must contain numeric arguments.', array(), 'Admin.Parameters.Notification');
                 break;
 
                 case 'returnNameTable':
                     if (isset($e[$key]['reference'])) {
-                        $this->errors[] = sprintf(
-                            Tools::displayError('The "%1$s" reference does not exist in the "%2$s" table.'),
-                            $e[$key]['reference'][0],
-                            $e[$key]['attribut'][1]
+                        $this->errors[] = $this->trans(
+                            'The "%reference%" reference does not exist in the "%table%" table.',
+                            array(
+                                '%reference%' => $e[$key]['reference'][0],
+                                '%table%' => $e[$key]['attribut'][1],
+                            ),
+                            'Admin.Parameters.Notification'
                         );
                     } else {
-                        $this->errors[] = Tools::displayError('When multiple tables are used, each attribute must refer back to a table.');
+                        $this->errors[] = $this->trans('When multiple tables are used, each attribute must refer back to a table.', array(), 'Admin.Parameters.Notification');
                     }
                 break;
 
                 case 'testedRequired':
-                    $this->errors[] = sprintf(Tools::displayError('%s does not exist.'), $e[$key]);
+                    $this->errors[] = sprintf($this->trans('"%s" does not exist.', array(), 'Admin.Notifications.Error'), $e[$key]);
                 break;
 
                 case 'testedUnauthorized':
-                    $this->errors[] = sprintf(Tools::displayError('Is an unauthorized keyword.'), $e[$key]);
+                    $this->errors[] = sprintf($this->trans('Is an unauthorized keyword.', array(), 'Admin.Parameters.Notification'), $e[$key]);
                 break;
             }
         }

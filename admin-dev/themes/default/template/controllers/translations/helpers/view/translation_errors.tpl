@@ -44,12 +44,12 @@
 			<b>{$limit_warning['max_input_vars']}</b> {l s='for max_input_vars.'}<br/>
 			{l s='Please ask your hosting provider to increase this limit to'}
 		{/if}
-		{l s='%s at least, or you will have to edit the translation files manually.' sprintf=$limit_warning['needed_limit']}
+		{l s='%s at least, or you will have to edit the translation files manually.' sprintf=[$limit_warning['needed_limit']]}
 	</div>
 	{else}
 		<div class="panel">
-			<p>{l s='Expressions to translate:'} <span class="badge">{l s='%d' sprintf=$count}</span></p>
-			<p>{l s='Total missing expressions:'} <span class="badge">{l s='%d' sprintf=$missing_translations|array_sum}</p>
+			<p>{l s='Expressions to translate:'} <span class="badge">{l s='%d' sprintf=[$count]}</span></p>
+			<p>{l s='Total missing expressions:'} <span class="badge">{l s='%d' sprintf=[$missing_translations|array_sum]}</p>
 		</div>
 
 		<script type="text/javascript">
@@ -100,9 +100,9 @@
 					{/foreach}
 				</table>
 				<div class="panel-footer">
-					<a name="submitTranslations{$type|ucfirst}" href="{$cancel_url|escape:'html':'UTF-8'}" class="btn btn-default"><i class="process-icon-cancel"></i> {l s='Cancel'}</a>
-					<button type="submit" id="{$table}_form_submit_btn" name="submitTranslations{$type|ucfirst}" class="btn btn-default pull-right"><i class="process-icon-save"></i> {l s='Save'}</button>
-					<button type="submit" name="submitTranslations{$type|ucfirst}AndStay" class="btn btn-default pull-right"><i class="process-icon-save"></i> {l s='Save and stay'}</button>
+					<a name="submitTranslations{$type|ucfirst}" href="{$cancel_url|escape:'html':'UTF-8'}" class="btn btn-default"><i class="process-icon-cancel"></i> {l s='Cancel' d='Admin.Actions'}</a>
+					<button type="submit" id="{$table}_form_submit_btn" name="submitTranslations{$type|ucfirst}" class="btn btn-default pull-right"><i class="process-icon-save"></i> {l s='Save' d='Admin.Actions'}</button>
+					<button type="submit" name="submitTranslations{$type|ucfirst}AndStay" class="btn btn-default pull-right"><i class="process-icon-save"></i> {l s='Save and stay' d='Admin.Actions'}</button>
 				</div>
 			</div>
 		</form>

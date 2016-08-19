@@ -25,7 +25,7 @@
 
 {*
 		<form action="{$smarty.server.REQUEST_URI|escape}" method="post" id="settings_form" name="settings_form" class="form-horizontal">
-			<h3><i class="icon-cog"></i> {l s='Settings'}</h3>
+			<h3><i class="icon-cog"></i> {l s='Settings' d='Admin.Global'}</h3>
 
 			<div class="form-group">
 				<label for="engine_stats_render">{l s='Graph engine'} </label>
@@ -63,7 +63,7 @@
 			</div>
 
 			<p>
-				<input type="submit" value="{l s='Save'}" name="submitSettings" id="submitSettings" class="btn btn-default" />
+				<input type="submit" value="{l s='Save' d='Admin.Actions'}" name="submitSettings" id="submitSettings" class="btn btn-default" />
 			</p>
 		</form>
 *}

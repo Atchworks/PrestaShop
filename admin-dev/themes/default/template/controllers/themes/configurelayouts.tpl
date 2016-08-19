@@ -38,7 +38,7 @@
 
             <tr>
               <th>{l s='Page'}</th>
-              <th>{l s='Description'}</th>
+              <th>{l s='Description' d='Admin.Global'}</th>
               <th>{l s='Layout'}</th>
             </tr>
 
@@ -84,7 +84,7 @@
     <div class="panel-footer">
       <input type="hidden" name="action" value="submitConfigureLayouts">
       <button type="submit" class="btn btn-default pull-right" name="submitConfigureLayouts">
-        <i class="process-icon-save"></i> {l s='Save'}
+        <i class="process-icon-save"></i> {l s='Save' d='Admin.Actions'}
       </button>
     </div>
 

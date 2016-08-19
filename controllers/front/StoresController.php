@@ -170,20 +170,12 @@ class StoresControllerCore extends FrontController
 
         $this->context->smarty->assign(array(
             'mediumSize' => Image::getSize(ImageType::getFormattedName('medium')),
-            'defaultCoordinate' => [
-                'lat'=> (float)Configuration::get('PS_STORES_CENTER_LAT'),
-                'long' => (float)Configuration::get('PS_STORES_CENTER_LONG'),
-            ],
             'searchUrl' => $this->context->link->getPageLink('stores'),
             'distance_unit' => $distance_unit,
             'stores' => $this->getTemplateVarStores(),
         ));
 
-        if (Configuration::get('PS_STORES_SIMPLIFIED')) {
-            $this->setTemplate('cms/stores-simple.tpl');
-        } else {
-            $this->setTemplate('cms/stores.tpl');
-        }
+        $this->setTemplate('cms/stores');
     }
 
     public function getTemplateVarStores()
@@ -209,25 +201,25 @@ class StoresControllerCore extends FrontController
             unset($store['hours']);
             $store['business_hours'] = [
                 [
-                    'day' => $this->l('Monday'),
+                    'day' => $this->trans('Monday', array(), 'Shop.Theme'),
                     'hours' => $temp[0],
                 ],[
-                    'day' => $this->l('Tuesday'),
+                    'day' => $this->trans('Tuesday', array(), 'Shop.Theme'),
                     'hours' => $temp[1],
                 ],[
-                    'day' => $this->l('Wednesday'),
+                    'day' => $this->trans('Wednesday', array(), 'Shop.Theme'),
                     'hours' => $temp[2],
                 ],[
-                    'day' => $this->l('Thursday'),
+                    'day' => $this->trans('Thursday', array(), 'Shop.Theme'),
                     'hours' => $temp[3],
                 ],[
-                    'day' => $this->l('Friday'),
+                    'day' => $this->trans('Friday', array(), 'Shop.Theme'),
                     'hours' => $temp[4],
                 ],[
-                    'day' => $this->l('Saturday'),
+                    'day' => $this->trans('Saturday', array(), 'Shop.Theme'),
                     'hours' => $temp[5],
                 ],[
-                    'day' => $this->l('Sunday'),
+                    'day' => $this->trans('Sunday', array(), 'Shop.Theme'),
                     'hours' => $temp[6],
                 ],
             ];

@@ -36,10 +36,12 @@ class AdminLogsControllerCore extends AdminController
         $this->className = 'PrestaShopLogger';
         $this->lang = false;
         $this->noLink = true;
+        
+        parent::__construct();
 
         $this->fields_list = array(
             'id_log' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs'
             ),
@@ -91,14 +93,13 @@ class AdminLogsControllerCore extends AdminController
                         'type' => 'text'
                     )
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             )
         );
         $this->list_no_link = true;
         $this->_select .= 'CONCAT(LEFT(e.firstname, 1), \'. \', e.lastname) employee';
         $this->_join .= ' LEFT JOIN '._DB_PREFIX_.'employee e ON (a.id_employee = e.id_employee)';
         $this->_use_found_rows = false;
-        parent::__construct();
     }
 
     public function processDelete()

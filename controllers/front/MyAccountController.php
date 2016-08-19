@@ -38,13 +38,9 @@ class MyAccountControllerCore extends FrontController
     public function initContent()
     {
         parent::initContent();
-
         $this->context->smarty->assign([
-            'feature_active'=> [
-                'voucher' => (int)CartRule::isFeatureActive(),
-                'return' => (int)Configuration::get('PS_ORDER_RETURN'),
-        ]]);
-
-        $this->setTemplate('customer/my-account.tpl');
+            'logout_url' => $this->context->link->getPageLink('index', true, null, 'mylogout')
+        ]);
+        $this->setTemplate('customer/my-account');
     }
 }

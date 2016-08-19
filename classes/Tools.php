@@ -848,6 +848,36 @@ class ToolsCore
     }
 
     /**
+    * Get localized date format
+    *
+    * @return string Date format
+    */
+    public static function getDateFormat()
+    {
+        $format = Context::getContext()->language->date_format_lite;
+        $search = array('d', 'm', 'Y');
+        $replace = array('DD', 'MM', 'YYYY');
+        $format = str_replace($search, $replace, $format);
+        return $format;
+    }
+
+    /**
+    * Get formatted date
+    *
+    * @param string $date_str Date string
+    * @param bool $full With time or not (optional)
+    * @return string Formatted date
+    */
+    public static function formatDateStr($date_str, $full = false)
+    {
+        $time = strtotime($date_str);
+        $context = Context::getContext();
+        $date_format = ($full ? $context->language->date_format_full : $context->language->date_format_lite);
+        $date = date($date_format, $time);
+        return $date;
+    }
+
+    /**
     * Sanitize a string
     *
     * @param string $string String to sanitize
@@ -1173,13 +1203,13 @@ class ToolsCore
         if ($has_mb_strtolower === null) {
             $has_mb_strtolower = function_exists('mb_strtolower');
         }
+        
+        if (!is_string($str)) {
+            return false;
+        }
 
         if (isset($array_str[$str])) {
             return $array_str[$str];
-        }
-
-        if (!is_string($str)) {
-            return false;
         }
 
         if ($str == '') {
@@ -2267,7 +2297,7 @@ class ToolsCore
 FileETag none
 <IfModule mod_deflate.c>
     <IfModule mod_filter.c>
-        AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/x-javascript font/ttf application/x-font-ttf font/otf application/x-font-otf font/opentype
+        AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/x-javascript font/ttf application/x-font-ttf font/otf application/x-font-otf font/opentype image/svg+xml
     </IfModule>
 </IfModule>\n\n";
             fwrite($write_fd, $cache_control);

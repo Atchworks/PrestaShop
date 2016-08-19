@@ -57,7 +57,7 @@
 		<form action="{$current|escape:'html':'UTF-8'}&amp;token={$token|escape:'html':'UTF-8'}" method="post" id="settings_form" name="settings_form" class="form-horizontal">
 			<div class="panel">
 				<h3>
-					<i class="icon-cog"></i> {l s='Settings'}
+					<i class="icon-cog"></i> {l s='Settings' d='Admin.Global'}
 				</h3>
 				<div class="alert alert-info">{l s='Direct traffic can be quite resource-intensive. You should consider enabling it only if you have a strong need for it.'}</div>
 				<div class="form-group">
@@ -68,11 +68,11 @@
 								<span class="switch prestashop-switch">
 									<input type="radio" name="tracking_dt" id="tracking_dt_on" value="1" {if $tracking_dt}checked="checked"{/if} />
 									<label class="t" for="tracking_dt_on">
-										{l s='Yes'}
+										{l s='Yes' d='Admin.Global'}
 									</label>
 									<input type="radio" name="tracking_dt" id="tracking_dt_off" value="0" {if !$tracking_dt}checked="checked"{/if}  />
 									<label class="t" for="tracking_dt_off">
-										{l s='No'}
+										{l s='No' d='Admin.Global'}
 									</label>
 									<a class="slide-button btn"></a>
 								</span>
@@ -81,7 +81,7 @@
 					</div>
 				</div>
 				<button type="submit" class="btn btn-default" name="submitSettings" id="submitSettings">
-					<i class="icon-save"></i> {l s='Save'}
+					<i class="icon-save"></i> {l s='Save' d='Admin.Actions'}
 				</button>
 			</div>
 		</form>
@@ -90,7 +90,7 @@
 		<div class="col-lg-3">
 			<div class="panel">
 				<div class="alert alert-info">
-					{l s="The module '%s' must be activated and configurated in order to have all the statistics" sprintf=$statsdata_name}
+					{l s="The module '%s' must be activated and configurated in order to have all the statistics" sprintf=[$statsdata_name]}
 				</div>
 			</div>
 		</div>

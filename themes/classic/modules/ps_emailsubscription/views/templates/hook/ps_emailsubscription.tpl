@@ -23,30 +23,58 @@
 *  International Registered Trademark & Property of PrestaShop SA
 *}
 
-<div class="block_newsletter col-md-7">
+<div class="block_newsletter col-lg-8 col-md-12 col-sm-12">
   <div class="row">
-    <p class="col-md-5">{l s='Get our latest news and special sales' mod='ps_emailsubscription'}</p>
-
-    <div class="col-md-7">
+    <p class="col-md-5 col-xs-12">{l s='Get our latest news and special sales' d='Shop.Theme'}</p>
+    <div class="col-md-7 col-xs-12">
       <form action="{$urls.pages.index}#footer" method="post">
         <div class="row">
-          <div class="col-md-8">
-            <input type="text" name="email" value="{$value}" placeholder="{l s='Your email address' mod='ps_emailsubscription'}">
-          </div>
-          <div class="col-md-4">
-            <input class="btn btn-primary" type="submit" value="{l s='Subscribe' mod='ps_emailsubscription'}" name="submitNewsletter">
+          <div class="col-xs-12">
+            <input
+              class="btn btn-primary pull-xs-right hidden-xs-down"
+              name="submitNewsletter"
+              type="submit"
+              value="{l s='Subscribe' d='Shop.Theme.Actions'}"
+            >
+            <input
+              class="btn btn-primary pull-xs-right hidden-sm-up"
+              name="submitNewsletter"
+              type="submit"
+              value="{l s='OK' d='Shop.Theme.Actions'}"
+            >
+            <div class="input-wrapper">
+              <input
+                name="email"
+                type="text"
+                value="{$value}"
+                placeholder="{l s='Your email address' d='Shop.Forms.Labels'}"
+              >
+            </div>
             <input type="hidden" name="action" value="0">
+            <div class="clearfix"></div>
           </div>
-          <div class="col-md-12">
-              {if isset($need_confirmation) && $need_confirmation}
-               <span class="custom-checkbox">
+          <div class="col-xs-12">
+              {if $need_confirmation}
+                <span class="custom-checkbox">
                   <input type="checkbox" name="confirm-optin" value="1" required>
                   <span><i class="material-icons checkbox-checked"></i></span>
-                  <label>{l s='I agree to receive newsletter emails and I am aware of [1]the privacy policy[/1]' tags=['<a target="_blank" href="%s">'|sprintf:$cms_privacy_link] mod='ps_emailsubscription'}</label>
+                  <label>
+                    {* [1][/1] is for a HTML tag. *}
+                    {l
+                      s='I want to receive the free newsletter and have read and accepted the [1]conditions[/1].'
+                      sprintf=[
+                        '[1]' => '<a data-toggle="modal" data-target="#ps_emailsubscription-modal">',
+                        '[/1]' => '</a>'
+                      ]
+                      d='Shop.Theme'
+                    }
+                  </label>
                 </span>
               {/if}
               {if $msg}
-                <p class="text-warning notification {if $nw_error}notification-error{else}notification-success{/if}">{$msg}</p>
+                <p class="text-warning notification {if $nw_error}notification-error{else}notification-success{/if}">
+                  {$msg}
+                </p>
               {/if}
           </div>
         </div>

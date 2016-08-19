@@ -49,7 +49,7 @@ class ProductImageController extends FrameworkBundleAdminController
     {
         $response = new JsonResponse();
         $adminProductWrapper = $this->container->get('prestashop.adapter.admin.wrapper.product');
-        $translator = $this->container->get('prestashop.adapter.translator');
+        $translator = $this->container->get('translator');
         $return_data = [];
 
         if ($idProduct == 0 || !$request->isXmlHttpRequest()) {
@@ -60,7 +60,7 @@ class ProductImageController extends FrameworkBundleAdminController
             ->add('file', 'Symfony\Component\Form\Extension\Core\Type\FileType', array(
                 'error_bubbling' => true,
                 'constraints' => [
-                    new Assert\NotNull(array('message' => $translator->trans('Please select a file', [], 'AdminProducts'))),
+                    new Assert\NotNull(array('message' => $translator->trans('Please select a file', [], 'Admin.Catalog.Feature'))),
                     new Assert\Image(array('maxSize' => $this->configuration->get('PS_ATTACHMENT_MAXIMUM_SIZE').'M')),
                 ]
             ))
@@ -118,7 +118,7 @@ class ProductImageController extends FrameworkBundleAdminController
         $locales = $this->container->get('prestashop.adapter.legacy.context')->getLanguages();
         $adminProductWrapper = $this->container->get('prestashop.adapter.admin.wrapper.product');
         $productAdapter = $this->container->get('prestashop.adapter.data_provider.product');
-        $translator = $this->container->get('prestashop.adapter.translator');
+        $translator = $this->container->get('translator');
 
         if ($idImage == 0 || !$request->isXmlHttpRequest()) {
             return new Response();
@@ -128,15 +128,15 @@ class ProductImageController extends FrameworkBundleAdminController
 
         $form = $this->container->get('form.factory')->createNamedBuilder('form_image', 'form', $image, array('csrf_protection' => false))
             ->add('legend', 'PrestaShopBundle\Form\Admin\Type\TranslateType', array(
-                'type' => 'Symfony\Component\Form\Extension\Core\Type\TextType',
-                'options' => [],
+                'type' => 'Symfony\Component\Form\Extension\Core\Type\TextareaType',
+                'options' => array(),
                 'locales' => $locales,
                 'hideTabs' => true,
-                'label' => $translator->trans('Legend', [], 'AdminProducts'),
+                'label' => $translator->trans('Caption', array(), 'Admin.Catalog.Feature'),
                 'required' => false,
             ))
             ->add('cover', 'Symfony\Component\Form\Extension\Core\Type\CheckboxType', array(
-                'label'    => $translator->trans('Choose as cover image', [], 'AdminProducts'),
+                'label'    => $translator->trans('Cover image', array(), 'Admin.Catalog.Feature'),
                 'required' => false,
             ))
             ->getForm();

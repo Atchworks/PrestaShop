@@ -1,16 +1,20 @@
 .quickview {
   .modal-dialog {
-    width: em(1024px);
+    width: rem(1024px);
   }
   .modal-content {
     background: $gray-light;
+    min-height: rem(450px);
   }
   .modal-header {
     border: none;
     padding: $small-space;
   }
+  .modal-body {
+    min-height: rem(380px);
+  }
   .modal-footer {
-    margin-top: $extra-large-space;
+    border-top: 1px solid rgba($gray,.3);
   }
   .layer {
     display: none;
@@ -22,30 +26,33 @@
     @include display(flex);
     position: absolute;
     z-index: 1;
-    min-height: em(350px);
-    .product-images > li.thumb-container > .thumb{
-      width: 79px;
+    min-height: rem(350px);
+    .product-images > li.thumb-container > .thumb {
+      width: rem(79px);
+      margin-bottom: rem(13px);
+      background: white;
     }
   }
-  .mask{
+  .mask {
     width: 33%;
-    height: em(350px);
+    height: rem(360px);
     overflow: hidden;
+    margin-left: $small-space;
   }
   .arrows {
     position: absolute;
     top: 0;
-    height: em(350px);
-    right: 80px;
+    height: rem(360px);
+    right: rem(80px);
     z-index: 0;
     .arrow-up {
-      margin-top: -50px;
+      margin-top: rem(-50px);
       cursor: pointer;
-      opacity: .2;
+      opacity: 0.2;
     }
     .arrow-down {
       position: absolute;
-      bottom: -30px;
+      bottom: rem(-30px);
       cursor: pointer;
     }
   }

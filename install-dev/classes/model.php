@@ -27,9 +27,11 @@
 abstract class InstallAbstractModel
 {
     /**
-     * @var InstallLanguages
+     * @var LanguageList
      */
     public $language;
+
+    public $translator;
 
     /**
      * @var array List of errors
@@ -38,7 +40,7 @@ abstract class InstallAbstractModel
 
     public function __construct()
     {
-        $this->language = InstallLanguages::getInstance();
+        $this->language = LanguageList::getInstance();
     }
 
     public function setError($errors)
@@ -53,5 +55,12 @@ abstract class InstallAbstractModel
     public function getErrors()
     {
         return $this->errors;
+    }
+
+    public function setTranslator($translator)
+    {
+        $this->translator = $translator;
+
+        return $this;
     }
 }

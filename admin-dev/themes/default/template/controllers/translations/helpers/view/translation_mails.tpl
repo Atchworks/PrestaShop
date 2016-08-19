@@ -46,7 +46,7 @@
 				<b>{$limit_warning['max_input_vars']}</b> {l s='for max_input_vars.'}<br/>
 				{l s='Please ask your hosting provider to increase this limit to'}
 			{/if}
-			{l s='%s at least, or you will have to edit the translation files.' sprintf=$limit_warning['needed_limit']}
+			{l s='%s at least, or you will have to edit the translation files.' sprintf=[$limit_warning['needed_limit']]}
 		</div>
 	{else}
 		<form method="post" id="{$table}_form" action="{$url_submit|escape:'html':'UTF-8'}" class="form-horizontal">
@@ -78,16 +78,16 @@
 				</div>
 				<div id="translation_mails-control-actions" class="panel-footer">
 					<a name="submitTranslations{$type|ucfirst}" href="{$cancel_url}" class="btn btn-default">
-						<i class="process-icon-cancel"></i> {l s='Cancel'}
+						<i class="process-icon-cancel"></i> {l s='Cancel' d='Admin.Actions'}
 					</a>
 					{*$toggle_button*}
 					<button type="submit" id="{$table}_form_submit_btn" name="submitTranslations{$type|ucfirst}" class="btn btn-default pull-right">
 						<i class="process-icon-save"></i>
-						{l s='Save'}
+						{l s='Save' d='Admin.Actions'}
 					</button>
 					<button type="submit" id="{$table}_form_submit_btn" name="submitTranslations{$type|ucfirst}AndStay" class="btn btn-default pull-right">
 						<i class="process-icon-save"></i>
-						{l s='Save and stay'}
+						{l s='Save and stay' d='Admin.Actions'}
 					</button>
 				</div>
 			</div>

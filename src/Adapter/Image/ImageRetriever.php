@@ -18,11 +18,13 @@ class ImageRetriever
 
     public function getProductImages(array $product, Language $language)
     {
+        $productAttributeId = $product['id_product_attribute'];
         $productInstance = new Product(
             $product['id_product'],
             false,
             $language->id
         );
+
         $images = $productInstance->getImages($language->id);
 
         if (empty($images)) {
@@ -41,11 +43,15 @@ class ImageRetriever
             }
         }
 
-        $images = array_map(function (array $image) use ($productInstance, $imageToCombinations) {
-            $image =  array_merge($image, $this->getImage(
+        $images = array_map(function (array $image) use (
+            $productInstance,
+            $imageToCombinations,
+            $productAttributeId
+        ) {
+            $image =  array_merge($this->getImage(
                 $productInstance,
                 $image['id_image']
-            ));
+            ), $image);
 
             if (isset($imageToCombinations[$image['id_image']])) {
                 $image['associatedVariants'] = $imageToCombinations[$image['id_image']];
@@ -56,7 +62,15 @@ class ImageRetriever
             return $image;
         }, $images);
 
-        return $images;
+        $filteredImages = array();
+
+        foreach ($images as $image) {
+            if (in_array($productAttributeId, $image['associatedVariants'])) {
+                $filteredImages[] = $image;
+            }
+        }
+
+        return (0 === count($filteredImages)) ? $images : $filteredImages;
     }
 
     public function getImage($object, $id_image)
@@ -100,13 +114,13 @@ class ImageRetriever
         $large  = end($urls);
         $medium = $urls[$keys[ceil((count($keys) - 1) / 2)]];
 
-        return [
+        return array(
             'bySize' => $urls,
             'small'  => $small,
             'medium' => $medium,
             'large'  => $large,
-            'legend' => $object->meta_title
-        ];
+            'legend' => $object->meta_title,
+        );
     }
 
     public function getCustomizationImage($imageHash)

@@ -198,7 +198,7 @@ class AdminProductsControllerCore extends AdminController
 
         $this->fields_list = array();
         $this->fields_list['id_product'] = array(
-            'title' => $this->l('ID'),
+            'title' => $this->trans('ID', array(), 'Admin.Global'),
             'align' => 'center',
             'class' => 'fixed-width-xs',
             'type' => 'int'
@@ -212,11 +212,11 @@ class AdminProductsControllerCore extends AdminController
             'search' => false
         );
         $this->fields_list['name'] = array(
-            'title' => $this->l('Name'),
+            'title' => $this->trans('Name', array(), 'Admin.Global'),
             'filter_key' => 'b!name'
         );
         $this->fields_list['reference'] = array(
-            'title' => $this->l('Reference'),
+            'title' => $this->trans('Reference', array(), 'Admin.Global'),
             'align' => 'left',
         );
 
@@ -585,7 +585,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessAddAttachment()
     {
-        if ($this->tabAccess['edit'] === '0') {
+        if (!$this->access('edit')) {
             return die(json_encode(array('error' => $this->l('You do not have the right permission'))));
         }
         if (isset($_FILES['attachment_file'])) {
@@ -851,7 +851,7 @@ class AdminProductsControllerCore extends AdminController
 
     protected function processBulkDelete()
     {
-        if ($this->tabAccess['delete'] === '1') {
+        if ($this->access('delete')) {
             if (is_array($this->boxes) && !empty($this->boxes)) {
                 $object = new $this->className();
 
@@ -972,7 +972,7 @@ class AdminProductsControllerCore extends AdminController
 
                 // Change existing one
                 if (($id_product_attribute = (int)Tools::getValue('id_product_attribute')) || ($id_product_attribute = $product->productAttributeExists(Tools::getValue('attribute_combination_list'), false, null, true, true))) {
-                    if ($this->tabAccess['edit'] === '1') {
+                    if ($this->access('edit')) {
                         if ($this->isProductFieldUpdated('available_date_attribute') && (Tools::getValue('available_date_attribute') != '' &&!Validate::isDateFormat(Tools::getValue('available_date_attribute')))) {
                             $this->errors[] = Tools::displayError('Invalid date format.');
                         } else {
@@ -1002,7 +1002,7 @@ class AdminProductsControllerCore extends AdminController
                 }
                 // Add new
                 else {
-                    if ($this->tabAccess['add'] === '1') {
+                    if ($this->access('add')) {
                         if ($product->productAttributeExists(Tools::getValue('attribute_combination_list'))) {
                             $this->errors[] = Tools::displayError('This combination already exists.');
                         } else {
@@ -1202,7 +1202,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessDeleteSpecificPrice()
     {
-        if ($this->tabAccess['delete'] === '1') {
+        if ($this->access('delete')) {
             $id_specific_price = (int)Tools::getValue('id_specific_price');
             if (!$id_specific_price || !Validate::isUnsignedId($id_specific_price)) {
                 $error = Tools::displayError('The specific price ID is invalid.');
@@ -1335,7 +1335,7 @@ class AdminProductsControllerCore extends AdminController
 
         // Delete a product in the download folder
         if (Tools::getValue('deleteVirtualProduct')) {
-            if ($this->tabAccess['delete'] === '1') {
+            if ($this->access('delete')) {
                 $this->action = 'deleteVirtualProduct';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to delete this.');
@@ -1350,7 +1350,7 @@ class AdminProductsControllerCore extends AdminController
                 $this->object = new Product((int)Tools::getValue('id_product'));
             }
         } elseif (Tools::isSubmit('submitAttachments')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'attachments';
                 $this->tab_display = 'attachments';
             } else {
@@ -1359,7 +1359,7 @@ class AdminProductsControllerCore extends AdminController
         }
         // Product duplication
         elseif (Tools::getIsset('duplicate'.$this->table)) {
-            if ($this->tabAccess['add'] === '1') {
+            if ($this->access('add')) {
                 $this->action = 'duplicate';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to add this.');
@@ -1367,7 +1367,7 @@ class AdminProductsControllerCore extends AdminController
         }
         // Product images management
         elseif (Tools::getValue('id_image') && Tools::getValue('ajax')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'image';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to edit this.');
@@ -1375,7 +1375,7 @@ class AdminProductsControllerCore extends AdminController
         }
         // Product attributes management
         elseif (Tools::isSubmit('submitProductAttribute')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'productAttribute';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to edit this.');
@@ -1383,7 +1383,7 @@ class AdminProductsControllerCore extends AdminController
         }
         // Product features management
         elseif (Tools::isSubmit('submitFeatures') || Tools::isSubmit('submitFeaturesAndStay')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'features';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to edit this.');
@@ -1391,19 +1391,19 @@ class AdminProductsControllerCore extends AdminController
         }
         // Product specific prices management NEVER USED
         elseif (Tools::isSubmit('submitPricesModification')) {
-            if ($this->tabAccess['add'] === '1') {
+            if ($this->access('add')) {
                 $this->action = 'pricesModification';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to add this.');
             }
         } elseif (Tools::isSubmit('deleteSpecificPrice')) {
-            if ($this->tabAccess['delete'] === '1') {
+            if ($this->access('delete')) {
                 $this->action = 'deleteSpecificPrice';
             } else {
                 $this->errors[] = Tools::displayError('You do not have permission to delete this.');
             }
         } elseif (Tools::isSubmit('submitSpecificPricePriorities')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'specificPricePriorities';
                 $this->tab_display = 'prices';
             } else {
@@ -1412,7 +1412,7 @@ class AdminProductsControllerCore extends AdminController
         }
         // Customization management
         elseif (Tools::isSubmit('submitCustomizationConfiguration')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'customizationConfiguration';
                 $this->tab_display = 'customization';
                 $this->display = 'edit';
@@ -1420,7 +1420,7 @@ class AdminProductsControllerCore extends AdminController
                 $this->errors[] = Tools::displayError('You do not have permission to edit this.');
             }
         } elseif (Tools::isSubmit('submitProductCustomization')) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'productCustomization';
                 $this->tab_display = 'customization';
                 $this->display = 'edit';
@@ -1526,7 +1526,7 @@ class AdminProductsControllerCore extends AdminController
             return;
         }
 
-        if ($this->tabAccess['delete'] === '1') {
+        if ($this->access('delete')) {
             $id_product = (int)Tools::getValue('id_product');
             $id_product_attribute = (int)Tools::getValue('id_product_attribute');
 
@@ -1578,7 +1578,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessDefaultProductAttribute()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             if (!Combination::isFeatureActive()) {
                 return;
             }
@@ -1603,7 +1603,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessEditProductAttribute()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             $id_product = (int)Tools::getValue('id_product');
             $id_product_attribute = (int)Tools::getValue('id_product_attribute');
             if ($id_product && Validate::isUnsignedId($id_product) && Validate::isLoadedObject($product = new Product((int)$id_product))) {
@@ -1672,7 +1672,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessUpdateImagePosition()
     {
-        if ($this->tabAccess['edit'] === '0') {
+        if (!$this->access('edit')) {
             return die(json_encode(array('error' => $this->l('You do not have the right permission'))));
         }
         $res = false;
@@ -1695,7 +1695,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessUpdateCover()
     {
-        if ($this->tabAccess['edit'] === '0') {
+        if (!$this->access('edit')) {
             return die(json_encode(array('error' => $this->l('You do not have the right permission'))));
         }
         Image::deleteCover((int)Tools::getValue('id_product'));
@@ -2774,7 +2774,7 @@ class AdminProductsControllerCore extends AdminController
                     'document.location = \''.$this->context->link->getAdminLink('AdminProducts', true).'&id_product='.(int)$product->id.'&duplicateproduct&noimage=1'.'\'';
 
                 // adding button for duplicate this product
-                if ($this->tabAccess['add']) {
+                if ($this->access('add')) {
                     $this->page_header_toolbar_btn['duplicate'] = array(
                         'short' => $this->l('Duplicate', null, null, false),
                         'desc' => $this->l('Duplicate', null, null, false),
@@ -2793,7 +2793,7 @@ class AdminProductsControllerCore extends AdminController
                 }
 
                 // adding button for delete this product
-                if ($this->tabAccess['delete']) {
+                if ($this->access('delete')) {
                     $this->page_header_toolbar_btn['delete'] = array(
                         'short' => $this->l('Delete', null, null, false),
                         'href' => $this->context->link->getAdminLink('AdminProducts').'&id_product='.(int)$product->id.'&deleteproduct',
@@ -2814,7 +2814,7 @@ class AdminProductsControllerCore extends AdminController
             $this->toolbar_btn['save'] = array(
                 'short' => 'Save',
                 'href' => '#',
-                'desc' => $this->l('Save'),
+                'desc' => $this->trans('Save', array(), 'Admin.Actions'),
             );
 
             $this->toolbar_btn['save-and-stay'] = array(
@@ -2832,7 +2832,7 @@ class AdminProductsControllerCore extends AdminController
         } elseif ($this->can_import) {
             $this->toolbar_btn['import'] = array(
                 'href' => $this->context->link->getAdminLink('AdminImport', true).'&import_type=products',
-                'desc' => $this->l('Import')
+                'desc' => $this->trans('Import', array(), 'Admin.Actions')
             );
         }
 
@@ -3743,8 +3743,8 @@ class AdminProductsControllerCore extends AdminController
 			</table>
 			</div>
 			<div class="panel-footer">
-				<a href="'.$this->context->link->getAdminLink('AdminProducts').($page > 1 ? '&submitFilter'.$this->table.'='.(int)$page : '').'" class="btn btn-default"><i class="process-icon-cancel"></i> '.$this->l('Cancel').'</a>
-				<button id="product_form_submit_btn"  type="submit" name="submitAddproduct" class="btn btn-default pull-right" disabled="disabled"><i class="process-icon-loading"></i> '.$this->l('Save') .'</button>
+				<a href="'.$this->context->link->getAdminLink('AdminProducts').($page > 1 ? '&submitFilter'.$this->table.'='.(int)$page : '').'" class="btn btn-default"><i class="process-icon-cancel"></i> '.$this->trans('Cancel', array(), 'Admin.Actions').'</a>
+				<button id="product_form_submit_btn"  type="submit" name="submitAddproduct" class="btn btn-default pull-right" disabled="disabled"><i class="process-icon-loading"></i> '.$this->trans('Save', array(), 'Admin.Actions') .'</button>
 				<button id="product_form_submit_btn"  type="submit" name="submitAddproductAndStay" class="btn btn-default pull-right" disabled="disabled"><i class="process-icon-loading"></i> '.$this->l('Save and stay') .'</button>
 			</div>
 		</div>';
@@ -3785,31 +3785,31 @@ class AdminProductsControllerCore extends AdminController
 			<label class="control-label col-lg-3" for="specificPricePriority1">'.$this->l('Priorities').'</label>
 			<div class="input-group col-lg-9">
 				<select id="specificPricePriority1" name="specificPricePriority[]">
-					<option value="id_shop"'.($specific_price_priorities[0] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->l('Shop').'</option>
+					<option value="id_shop"'.($specific_price_priorities[0] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->trans('Shop', array(), 'Admin.Global').'</option>
 					<option value="id_currency"'.($specific_price_priorities[0] == 'id_currency' ? ' selected="selected"' : '').'>'.$this->l('Currency').'</option>
-					<option value="id_country"'.($specific_price_priorities[0] == 'id_country' ? ' selected="selected"' : '').'>'.$this->l('Country').'</option>
-					<option value="id_group"'.($specific_price_priorities[0] == 'id_group' ? ' selected="selected"' : '').'>'.$this->l('Group').'</option>
+					<option value="id_country"'.($specific_price_priorities[0] == 'id_country' ? ' selected="selected"' : '').'>'.$this->trans('Country', array(), 'Admin.Global').'</option>
+					<option value="id_group"'.($specific_price_priorities[0] == 'id_group' ? ' selected="selected"' : '').'>'.$this->trans('Group', array(), 'Admin.Global').'</option>
 				</select>
 				<span class="input-group-addon"><i class="icon-chevron-right"></i></span>
 				<select name="specificPricePriority[]">
-					<option value="id_shop"'.($specific_price_priorities[1] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->l('Shop').'</option>
+					<option value="id_shop"'.($specific_price_priorities[1] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->trans('Shop', array(), 'Admin.Global').'</option>
 					<option value="id_currency"'.($specific_price_priorities[1] == 'id_currency' ? ' selected="selected"' : '').'>'.$this->l('Currency').'</option>
-					<option value="id_country"'.($specific_price_priorities[1] == 'id_country' ? ' selected="selected"' : '').'>'.$this->l('Country').'</option>
-					<option value="id_group"'.($specific_price_priorities[1] == 'id_group' ? ' selected="selected"' : '').'>'.$this->l('Group').'</option>
+					<option value="id_country"'.($specific_price_priorities[1] == 'id_country' ? ' selected="selected"' : '').'>'.$this->trans('Country', array(), 'Admin.Global').'</option>
+					<option value="id_group"'.($specific_price_priorities[1] == 'id_group' ? ' selected="selected"' : '').'>'.$this->trans('Group', array(), 'Admin.Global').'</option>
 				</select>
 				<span class="input-group-addon"><i class="icon-chevron-right"></i></span>
 				<select name="specificPricePriority[]">
-					<option value="id_shop"'.($specific_price_priorities[2] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->l('Shop').'</option>
+					<option value="id_shop"'.($specific_price_priorities[2] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->trans('Shop', array(), 'Admin.Global').'</option>
 					<option value="id_currency"'.($specific_price_priorities[2] == 'id_currency' ? ' selected="selected"' : '').'>'.$this->l('Currency').'</option>
-					<option value="id_country"'.($specific_price_priorities[2] == 'id_country' ? ' selected="selected"' : '').'>'.$this->l('Country').'</option>
-					<option value="id_group"'.($specific_price_priorities[2] == 'id_group' ? ' selected="selected"' : '').'>'.$this->l('Group').'</option>
+					<option value="id_country"'.($specific_price_priorities[2] == 'id_country' ? ' selected="selected"' : '').'>'.$this->trans('Country', array(), 'Admin.Global').'</option>
+					<option value="id_group"'.($specific_price_priorities[2] == 'id_group' ? ' selected="selected"' : '').'>'.$this->trans('Group', array(), 'Admin.Global').'</option>
 				</select>
 				<span class="input-group-addon"><i class="icon-chevron-right"></i></span>
 				<select name="specificPricePriority[]">
-					<option value="id_shop"'.($specific_price_priorities[3] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->l('Shop').'</option>
+					<option value="id_shop"'.($specific_price_priorities[3] == 'id_shop' ? ' selected="selected"' : '').'>'.$this->trans('Shop', array(), 'Admin.Global').'</option>
 					<option value="id_currency"'.($specific_price_priorities[3] == 'id_currency' ? ' selected="selected"' : '').'>'.$this->l('Currency').'</option>
-					<option value="id_country"'.($specific_price_priorities[3] == 'id_country' ? ' selected="selected"' : '').'>'.$this->l('Country').'</option>
-					<option value="id_group"'.($specific_price_priorities[3] == 'id_group' ? ' selected="selected"' : '').'>'.$this->l('Group').'</option>
+					<option value="id_country"'.($specific_price_priorities[3] == 'id_country' ? ' selected="selected"' : '').'>'.$this->trans('Country', array(), 'Admin.Global').'</option>
+					<option value="id_group"'.($specific_price_priorities[3] == 'id_group' ? ' selected="selected"' : '').'>'.$this->trans('Group', array(), 'Admin.Global').'</option>
 				</select>
 			</div>
 		</div>
@@ -3821,8 +3821,8 @@ class AdminProductsControllerCore extends AdminController
 			</div>
 		</div>
 		<div class="panel-footer">
-				<a href="'.$this->context->link->getAdminLink('AdminProducts').($page > 1 ? '&submitFilter'.$this->table.'='.(int)$page : '').'" class="btn btn-default"><i class="process-icon-cancel"></i> '.$this->l('Cancel').'</a>
-				<button id="product_form_submit_btn"  type="submit" name="submitAddproduct" class="btn btn-default pull-right" disabled="disabled"><i class="process-icon-loading"></i> '.$this->l('Save') .'</button>
+				<a href="'.$this->context->link->getAdminLink('AdminProducts').($page > 1 ? '&submitFilter'.$this->table.'='.(int)$page : '').'" class="btn btn-default"><i class="process-icon-cancel"></i> '.$this->trans('Cancel', array(), 'Admin.Actions').'</a>
+				<button id="product_form_submit_btn"  type="submit" name="submitAddproduct" class="btn btn-default pull-right" disabled="disabled"><i class="process-icon-loading"></i> '.$this->trans('Save', array(), 'Admin.Actions') .'</button>
 				<button id="product_form_submit_btn"  type="submit" name="submitAddproductAndStay" class="btn btn-default pull-right" disabled="disabled"><i class="process-icon-loading"></i> '.$this->l('Save and stay') .'</button>
 			</div>
 		</div>
@@ -3876,7 +3876,7 @@ class AdminProductsControllerCore extends AdminController
             .'<div class="checkbox">'
             .'<label for="require_'.$type.'_'.(int)($id_customization_field).'">'
             .'<input type="checkbox" name="require_'.$type.'_'.(int)($id_customization_field).'" id="require_'.$type.'_'.(int)($id_customization_field).'" value="1" '.($required ? 'checked="checked"' : '').'/>'
-            .$this->l('Required')
+            .$this->trans('Required', array(), 'Admin.Global')
             .'</label>'
             .'</div>'
             .'</div>'
@@ -4474,7 +4474,7 @@ class AdminProductsControllerCore extends AdminController
             'attributes' => array('title' => $this->l('Attribute - value pair'), 'align' => 'left'),
             'price' => array('title' => $this->l('Impact on price'), 'type' => 'price', 'align' => 'left'),
             'weight' => array('title' => $this->l('Impact on weight'), 'align' => 'left'),
-            'reference' => array('title' => $this->l('Reference'), 'align' => 'left'),
+            'reference' => array('title' => $this->trans('Reference', array(), 'Admin.Global'), 'align' => 'left'),
             'ean13' => array('title' => $this->l('EAN-13'), 'align' => 'left'),
             'isbn' => array('title' => $this->l('ISBN'), 'align' => 'left'),
             'upc' => array('title' => $this->l('UPC'), 'align' => 'left')
@@ -4914,7 +4914,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessProductQuantity()
     {
-        if ($this->tabAccess['edit'] === '0') {
+        if (!$this->access('edit')) {
             return die(json_encode(array('error' => $this->l('You do not have the right permission'))));
         }
         if (!Tools::getValue('actionQty')) {
@@ -5125,26 +5125,16 @@ class AdminProductsControllerCore extends AdminController
             'Default category:' => $this->l('Default category'),
             'Catalog:' => $this->l('Catalog'),
             'Consider changing the default category.' => $this->l('Consider changing the default category.'),
-            'ID' => $this->l('ID'),
-            'Name' => $this->l('Name'),
+            'ID' => $this->trans('ID', array(), 'Admin.Global'),
+            'Name' => $this->trans('Name', array(), 'Admin.Global'),
             'Mark all checkbox(es) of categories in which product is to appear' => $this->l('Mark the checkbox of each categories in which this product will appear.')
         );
         return $trad[$key];
     }
 
-    protected function _displayUnavailableProductWarning()
-    {
-        $content = '<div class="alert">
-			<span>'.$this->l('Your product will be saved as a draft.').'</span>
-				<a href="#" class="btn btn-default pull-right" onclick="submitAddProductAndPreview()" ><i class="icon-external-link-sign"></i> '.$this->l('Save and preview').'</a>
-				<input type="hidden" name="fakeSubmitAddProductAndPreview" id="fakeSubmitAddProductAndPreview" />
-			</div>';
-        $this->tpl_form_vars['warning_unavailable_product'] = $content;
-    }
-
     public function ajaxProcessCheckProductName()
     {
-        if ($this->tabAccess['view'] === '1') {
+        if ($this->access('view')) {
             $search = Tools::getValue('q');
             $id_lang = Tools::getValue('id_lang');
             $limit = Tools::getValue('limit');
@@ -5167,7 +5157,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessUpdatePositions()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             $way = (int)(Tools::getValue('way'));
             $id_product = (int)Tools::getValue('id_product');
             $id_category = (int)Tools::getValue('id_category');
@@ -5207,7 +5197,7 @@ class AdminProductsControllerCore extends AdminController
 
     public function ajaxProcessPublishProduct()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             if ($id_product = (int)Tools::getValue('id_product')) {
                 $bo_product_url = dirname($_SERVER['PHP_SELF']).'/index.php?tab=AdminProducts&id_product='.$id_product.'&updateproduct&token='.$this->token;
 

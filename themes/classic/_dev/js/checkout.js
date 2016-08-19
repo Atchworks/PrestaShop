@@ -5,13 +5,6 @@ function setupMyCheckoutScripts() {
     $('.checkout-step:not(.-js-current) .step-title').addClass('not-allowed');
   }
 
-  $('body').on('click', '.checkout-step.-reachable h1', function(event) {
-    if ($('.js-cancel-address').length === 0) {
-      $('.-js-current, .-current').removeClass('-js-current -current');
-      $(event.target).closest('.checkout-step').toggleClass('-js-current');
-    }
-  });
-
   $('.js-terms a').on('click', (event) => {
     event.preventDefault();
     var url = $(event.target).attr('href');
@@ -24,6 +17,10 @@ function setupMyCheckoutScripts() {
     }
 
     $('#modal').modal('show');
+  });
+
+  $('.js-gift-checkbox').on('click', (event) => {
+    $('#gift').collapse('toggle');
   });
 }
 

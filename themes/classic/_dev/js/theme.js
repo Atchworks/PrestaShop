@@ -1,10 +1,11 @@
 import $ from 'expose?$!expose?jQuery!jquery';
 import 'expose?Tether!tether';
-import 'bootstrap/dist/js/npm';
+import 'bootstrap/dist/js/bootstrap.min';
 import 'flexibility';
 import 'bootstrap-touchspin';
 
 import '../css/theme';
+import './responsive';
 import './checkout';
 import './customer';
 import './listing';
@@ -32,7 +33,7 @@ for (var i in EventEmitter.prototype) {
 $(document).ready(() => {
   let dropDownEl = $('.js-dropdown');
   const form = new Form();
-  let topMenuEl = $('.js-top-menu ul');
+  let topMenuEl = $('.js-top-menu ul[data-depth="0"]');
   let dropDown = new DropDown(dropDownEl);
   let topMenu = new TopMenu(topMenuEl);
   let productMinitature = new ProductMinitature();

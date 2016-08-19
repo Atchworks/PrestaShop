@@ -50,7 +50,7 @@
 		<table class="table">
 			<thead>
 				<tr>
-					<th>{l s='Reference'}</th>
+					<th>{l s='Reference' d='Admin.Global'}</th>
 					<th>{l s='Product name'}</th>
 					<th class="text-center">{l s='Quantity'}</th>
 					<th class="text-center">{l s='Action'}</th>
@@ -65,7 +65,7 @@
 						<td class="text-center">
 							<a class="btn btn-default" href="{$current|escape:'html':'UTF-8'}&amp;deleteorder_return_detail&amp;id_order_detail={$returnedCustomization['id_order_detail']}&amp;id_order_return={$id_order_return}&amp;id_customization={$returnedCustomization['id_customization']}&amp;token={$token|escape:'html':'UTF-8'}">
 								<i class="icon-remove"></i>
-								{l s='Delete'}
+								{l s='Delete' d='Admin.Actions'}
 							</a>
 						</td>
 					</tr>
@@ -89,7 +89,7 @@
 									{elseif $type == Product::CUSTOMIZE_TEXTFIELD}
 											{foreach from=$datas item='data'}
 												<div class="form-group">
-													<span class="control-label col-lg-3"><strong>{if $data['name']}{$data['name']}{else}{l s='Text #%d' sprintf=$smarty.foreach.data.iteration}{/if}</strong></span>
+													<span class="control-label col-lg-3"><strong>{if $data['name']}{$data['name']}{else}{l s='Text #%d' sprintf=[$smarty.foreach.data.iteration]}{/if}</strong></span>
 													<div class="col-lg-9">
 														<p class="form-control-static">
 															{$data['value']}
@@ -114,7 +114,7 @@
 							<td class="text-center">
 								<a class="btn btn-default"  href="{$current|escape:'html':'UTF-8'}&amp;deleteorder_return_detail&amp;id_order_detail={$product['id_order_detail']}&amp;id_order_return={$id_order_return}&amp;token={$token|escape:'html':'UTF-8'}">
 									<i class="icon-remove"></i>
-									{l s='Delete'}
+									{l s='Delete' d='Admin.Actions'}
 								</a>
 							</td>
 						</tr>

@@ -37,10 +37,10 @@ class AdminStatesControllerCore extends AdminController
         $this->lang = false;
         $this->requiredDatabase = true;
 
+        parent::__construct();
+
         $this->addRowAction('edit');
         $this->addRowAction('delete');
-
-        $this->context = Context::getContext();
 
         if (!Tools::getValue('realedit')) {
             $this->deleted = false;
@@ -69,12 +69,12 @@ class AdminStatesControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_state' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs'
             ),
             'name' => array(
-                'title' => $this->l('Name'),
+                'title' => $this->trans('Name', array(), 'Admin.Global'),
                 'filter_key' => 'a!name'
             ),
             'iso_code' => array(
@@ -83,7 +83,7 @@ class AdminStatesControllerCore extends AdminController
                 'class' => 'fixed-width-xs'
             ),
             'zone' => array(
-                'title' => $this->l('Zone'),
+                'title' => $this->trans('Zone', array(), 'Admin.Global'),
                 'type' => 'select',
                 'list' => $zones_array,
                 'filter_key' => 'z!id_zone',
@@ -91,7 +91,7 @@ class AdminStatesControllerCore extends AdminController
                 'order_key' => 'zone'
             ),
             'country' => array(
-                'title' => $this->l('Country'),
+                'title' => $this->trans('Country', array(), 'Admin.Global'),
                 'type' => 'select',
                 'list' => $countries_array,
                 'filter_key' => 'cl!id_country',
@@ -99,7 +99,7 @@ class AdminStatesControllerCore extends AdminController
                 'order_key' => 'country'
             ),
             'active' => array(
-                'title' => $this->l('Enabled'),
+                'title' => $this->trans('Enabled', array(), 'Admin.Global'),
                 'active' => 'status',
                 'filter_key' => 'a!active',
                 'align' => 'center',
@@ -108,8 +108,6 @@ class AdminStatesControllerCore extends AdminController
                 'class' => 'fixed-width-sm'
             )
         );
-
-        parent::__construct();
     }
 
     public function initPageHeaderToolbar()
@@ -144,7 +142,7 @@ class AdminStatesControllerCore extends AdminController
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'maxlength' => 32,
                     'required' => true,
@@ -161,7 +159,7 @@ class AdminStatesControllerCore extends AdminController
                 ),
                 array(
                     'type' => 'select',
-                    'label' => $this->l('Country'),
+                    'label' => $this->trans('Country', array(), 'Admin.Global'),
                     'name' => 'id_country',
                     'required' => true,
                     'default_value' => (int)$this->context->country->id,
@@ -174,7 +172,7 @@ class AdminStatesControllerCore extends AdminController
                 ),
                 array(
                     'type' => 'select',
-                    'label' => $this->l('Zone'),
+                    'label' => $this->trans('Zone', array(), 'Admin.Global'),
                     'name' => 'id_zone',
                     'required' => true,
                     'options' => array(
@@ -196,18 +194,18 @@ class AdminStatesControllerCore extends AdminController
                         array(
                             'id' => 'active_on',
                             'value' => 1,
-                            'label' => '<img src="../img/admin/enabled.gif" alt="'.$this->l('Enabled').'" title="'.$this->l('Enabled').'" />'
+                            'label' => '<img src="../img/admin/enabled.gif" alt="'.$this->trans('Enabled', array(), 'Admin.Global').'" title="'.$this->trans('Enabled', array(), 'Admin.Global').'" />'
                         ),
                         array(
                             'id' => 'active_off',
                             'value' => 0,
-                            'label' => '<img src="../img/admin/disabled.gif" alt="'.$this->l('Disabled').'" title="'.$this->l('Disabled').'" />'
+                            'label' => '<img src="../img/admin/disabled.gif" alt="'.$this->trans('Disabled', array(), 'Admin.Global').'" title="'.$this->trans('Disabled', array(), 'Admin.Global').'" />'
                         )
                     )
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
 
@@ -223,33 +221,33 @@ class AdminStatesControllerCore extends AdminController
         // Idiot-proof controls
         if (!Tools::getValue('id_'.$this->table)) {
             if (Validate::isStateIsoCode(Tools::getValue('iso_code')) && State::getIdByIso(Tools::getValue('iso_code'), Tools::getValue('id_country'))) {
-                $this->errors[] = Tools::displayError('This ISO code already exists. You cannot create two states with the same ISO code.');
+                $this->errors[] = $this->trans('This ISO code already exists. You cannot create two states with the same ISO code.', array(), 'Admin.International.Notification');
             }
         } elseif (Validate::isStateIsoCode(Tools::getValue('iso_code'))) {
             $id_state = State::getIdByIso(Tools::getValue('iso_code'), Tools::getValue('id_country'));
             if ($id_state && $id_state != Tools::getValue('id_'.$this->table)) {
-                $this->errors[] = Tools::displayError('This ISO code already exists. You cannot create two states with the same ISO code.');
+                $this->errors[] = $this->trans('This ISO code already exists. You cannot create two states with the same ISO code.', array(), 'Admin.International.Notification');
             }
         }
 
         /* Delete state */
         if (Tools::isSubmit('delete'.$this->table)) {
-            if ($this->tabAccess['delete'] === '1') {
+            if ($this->access('delete')) {
                 if (Validate::isLoadedObject($object = $this->loadObject())) {
                     /** @var State $object */
                     if (!$object->isUsed()) {
                         if ($object->delete()) {
                             Tools::redirectAdmin(self::$currentIndex.'&conf=1&token='.(Tools::getValue('token') ? Tools::getValue('token') : $this->token));
                         }
-                        $this->errors[] = Tools::displayError('An error occurred during deletion.');
+                        $this->errors[] = $this->trans('An error occurred during deletion.', array(), 'Admin.Notifications.Error');
                     } else {
-                        $this->errors[] = Tools::displayError('This state was used in at least one address. It cannot be removed.');
+                        $this->errors[] = $this->trans('This state was used in at least one address. It cannot be removed.', array(), 'Admin.International.Notification');
                     }
                 } else {
-                    $this->errors[] = Tools::displayError('An error occurred while deleting the object.').' <b>'.$this->table.'</b> '.Tools::displayError('(cannot load object)');
+                    $this->errors[] = $this->trans('An error occurred while deleting the object.', array(), 'Admin.Notifications.Error').' <b>'.$this->table.'</b> '.$this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
                 }
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to delete this.');
+                $this->errors[] = $this->trans('You do not have permission to delete this.', array(), 'Admin.Notifications.Error');
             }
         }
 

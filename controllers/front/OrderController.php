@@ -48,10 +48,10 @@ class OrderControllerCore extends FrontController
             $oldCart = new Cart(Order::getCartIdStatic($id_order, $this->context->customer->id));
             $duplication = $oldCart->duplicate();
             if (!$duplication || !Validate::isLoadedObject($duplication['cart'])) {
-                $this->errors[] = $this->getTranslator()->trans('Sorry. We cannot renew your order.', [], 'Order');
+                $this->errors[] = $this->trans('Sorry. We cannot renew your order.', array(), 'Shop.Notifications.Error');
             } elseif (!$duplication['success']) {
-                $this->errors[] = $this->getTranslator()->trans(
-                    'Some items are no longer available, and we are unable to renew your order.', [], 'Order'
+                $this->errors[] = $this->trans(
+                    'Some items are no longer available, and we are unable to renew your order.', array(), 'Shop.Notifications.Error'
                 );
             } else {
                 $this->context->cookie->id_cart = $duplication['cart']->id;
@@ -94,25 +94,6 @@ class OrderControllerCore extends FrontController
             $session
         );
 
-        $checkoutDeliveryStep = new CheckoutDeliveryStep(
-            $this->context,
-            $translator
-        );
-
-        $checkoutDeliveryStep
-            ->setRecyclablePackAllowed((bool) Configuration::get('PS_RECYCLABLE_PACK'))
-            ->setGiftAllowed((bool) Configuration::get('PS_GIFT_WRAPPING'))
-            ->setIncludeTaxes(
-                !Product::getTaxCalculationMethod((int) $this->context->cart->id_customer)
-                && (int) Configuration::get('PS_TAX')
-            )
-            ->setDisplayTaxesLabel((Configuration::get('PS_TAX') && !Configuration::get('AEUC_LABEL_TAX_INC_EXC')))
-            ->setGiftCost(
-                $this->context->cart->getGiftWrappingPrice(
-                    $checkoutDeliveryStep->getIncludeTaxes()
-            )
-        );
-
         $this->checkoutProcess
             ->addStep(new CheckoutPersonalInformationStep(
                 $this->context,
@@ -124,8 +105,32 @@ class OrderControllerCore extends FrontController
                 $this->context,
                 $translator,
                 $this->makeAddressForm()
-            ))
-            ->addStep($checkoutDeliveryStep)
+            ));
+
+        if (!$this->context->cart->isVirtualCart()) {
+            $checkoutDeliveryStep = new CheckoutDeliveryStep(
+                $this->context,
+                $translator
+            );
+
+            $checkoutDeliveryStep
+                ->setRecyclablePackAllowed((bool) Configuration::get('PS_RECYCLABLE_PACK'))
+                ->setGiftAllowed((bool) Configuration::get('PS_GIFT_WRAPPING'))
+                ->setIncludeTaxes(
+                    !Product::getTaxCalculationMethod((int) $this->context->cart->id_customer)
+                    && (int) Configuration::get('PS_TAX')
+                )
+                ->setDisplayTaxesLabel((Configuration::get('PS_TAX') && !Configuration::get('AEUC_LABEL_TAX_INC_EXC')))
+                ->setGiftCost(
+                    $this->context->cart->getGiftWrappingPrice(
+                        $checkoutDeliveryStep->getIncludeTaxes()
+                    )
+                );
+
+            $this->checkoutProcess->addStep($checkoutDeliveryStep);
+        }
+
+        $this->checkoutProcess
             ->addStep(new CheckoutPaymentStep(
                 $this->context,
                 $translator,
@@ -165,38 +170,36 @@ class OrderControllerCore extends FrontController
         }
     }
 
-    private function jsonRenderCartSummary()
+    public function displayAjaxselectDeliveryOption()
     {
-        parent::initContent();
         $cart = $this->cart_presenter->present(
             $this->context->cart
         );
-        $return['preview'] = $this->render('checkout/_partials/cart-summary.tpl', [
-            'cart' => $cart,
-            'static_token' => Tools::getToken(false),
-        ]);
 
-        return json_encode($return);
+        ob_end_clean();
+        header('Content-Type: application/json');
+        $this->ajaxDie(Tools::jsonEncode(array(
+            'preview' => $this->render('checkout/_partials/cart-summary', array(
+                'cart' => $cart,
+                'static_token' => Tools::getToken(false),
+            ))
+        )));
     }
 
     public function initContent()
     {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST' && $this->ajax) {
-            die($this->jsonRenderCartSummary());
-        }
-
         parent::initContent();
+
+        $this->restorePersistedData($this->checkoutProcess);
+        $this->checkoutProcess->handleRequest(
+            Tools::getAllValues()
+        );
 
         $presentedCart = $this->cart_presenter->present($this->context->cart);
 
         if (count($presentedCart['products']) <= 0 || $presentedCart['minimalPurchaseRequired']) {
             Tools::redirect('index.php?controller=cart');
         }
-
-        $this->restorePersistedData($this->checkoutProcess);
-        $this->checkoutProcess->handleRequest(
-            Tools::getAllValues()
-        );
 
         $this->checkoutProcess
             ->setNextStepReachable()
@@ -217,6 +220,6 @@ class OrderControllerCore extends FrontController
             'checkout_process' => new RenderableProxy($this->checkoutProcess),
             'cart' => $presentedCart,
         ]);
-        $this->setTemplate('checkout/checkout.tpl');
+        $this->setTemplate('checkout/checkout');
     }
 }

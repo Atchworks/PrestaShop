@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block typeahead_product_pack_collection_widget %}
-    <h2 class="title-products {{ collection is defined and collection|length > 0 ? '' : 'hide' }}">{{ 'List of products for this pack'|trans({}, 'AdminProducts') }}</h2>
+    <h2 class="title-products {{ collection is defined and collection|length > 0 ? '' : 'hide' }}">{{ 'List of products for this pack'|trans({}, 'Admin.Catalog.Feature') }}</h2>
     <ul id="{{ form.vars.id }}-data" class="typeahead-list pack nostyle row">
         {% if collection is defined and collection|length > 0 %}
             {% for item in collection %}
@@ -53,7 +53,7 @@
 
     <div class="row m-b-2">
         <div class="col-md-6">
-            <input type="text" id="{{ form.vars.id }}" class="form-control typeahead {{ form.vars.id }}" placeholder="{{ placeholder }}" autocomplete="off" />
+            <input type="text" id="{{ form.vars.id }}" class="form-control typeahead search {{ form.vars.id }}" placeholder="{{ placeholder }}" autocomplete="off" />
         </div>
         <div class="col-md-2">
             <div class="input-group">
@@ -65,7 +65,7 @@
             <div class="input-group">
                 <button id="{{ form.vars.id }}-curPackItemAdd" class="btn btn-action btn-block">
                     <i class="material-icons">add</i>
-                    {{ "Add this product"|trans({}, "AdminProducts") }}
+                    {{ "Add"|trans({}, "Admin.Actions") }}
                 </button>
             </div>
         </div>
@@ -211,7 +211,7 @@
 
             //define typeahead
             $('#{{ form.vars.id }}').typeahead({
-                limit: 20,
+                limit: 200,
                 minLength: 2,
                 highlight: true,
                 cache: false,

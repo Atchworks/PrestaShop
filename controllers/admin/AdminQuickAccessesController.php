@@ -39,7 +39,7 @@ class AdminQuickAccessesControllerCore extends AdminController
         $this->addRowAction('edit');
         $this->addRowAction('delete');
 
-        $this->context = Context::getContext();
+        parent::__construct();
 
         if (!Tools::getValue('realedit')) {
             $this->deleted = false;
@@ -55,12 +55,12 @@ class AdminQuickAccessesControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_quick_access' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs'
             ),
             'name' => array(
-                'title' => $this->l('Name')
+                'title' => $this->trans('Name', array(), 'Admin.Global')
             ),
             'link' => array(
                 'title' => $this->l('Link')
@@ -82,7 +82,7 @@ class AdminQuickAccessesControllerCore extends AdminController
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'lang' => true,
                     'maxlength' => 32,
@@ -106,22 +106,25 @@ class AdminQuickAccessesControllerCore extends AdminController
                         array(
                             'id' => 'new_window_on',
                             'value' => 1,
-                            'label' => '<img src="../img/admin/enabled.gif" alt="'.$this->l('Enabled').'" title="'.$this->l('Enabled').'" />'
+                            'label' => '<img src="../img/admin/enabled.gif" alt="'.$this->trans('Enabled', array(), 'Admin.Global').'" title="'.$this->trans('Enabled', array(), 'Admin.Global').'" />'
                         ),
                         array(
                             'id' => 'new_window_off',
                             'value' => 0,
-                            'label' => '<img src="../img/admin/disabled.gif" alt="'.$this->l('Disabled').'" title="'.$this->l('Disabled').'" />'
+                            'label' => '<img src="../img/admin/disabled.gif" alt="'.$this->trans('Disabled', array(), 'Admin.Global').'" title="'.$this->trans('Disabled', array(), 'Admin.Global').'" />'
                         )
                     )
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
+    }
 
-        parent::__construct();
+    public function getTabSlug()
+    {
+        return 'ROLE_MOD_TAB_ADMINACCESS_';
     }
 
     public function initPageHeaderToolbar()
@@ -140,10 +143,10 @@ class AdminQuickAccessesControllerCore extends AdminController
     public function initProcess()
     {
         if ((isset($_GET['new_window'.$this->table]) || isset($_GET['new_window'])) && Tools::getValue($this->identifier)) {
-            if ($this->tabAccess['edit'] === '1') {
+            if ($this->access('edit')) {
                 $this->action = 'newWindow';
             } else {
-                $this->errors[] = Tools::displayError('You do not have permission to edit this.');
+                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
         }
 
@@ -182,7 +185,7 @@ class AdminQuickAccessesControllerCore extends AdminController
             $this->beforeAdd($this->object);
 
             if (method_exists($this->object, 'add') && !$this->object->add()) {
-                $this->errors[] = Tools::displayError('An error occurred while creating an object.').
+                $this->errors[] = $this->trans('An error occurred while creating an object.', array(), 'Admin.Notifications.Error').
                     ' <b>'.$this->table.' ('.Db::getInstance()->getMsgError().')</b>';
             }
             /* voluntary do affectation here */
@@ -231,12 +234,12 @@ class AdminQuickAccessesControllerCore extends AdminController
             if ($object->toggleNewWindow()) {
                 $this->redirect_after = self::$currentIndex.'&conf=5&token='.$this->token;
             } else {
-                $this->errors[] = Tools::displayError('An error occurred while updating new window property.');
+                $this->errors[] = $this->trans('An error occurred while updating new window property.', array(), 'Admin.Parameters.Notification');
             }
         } else {
-            $this->errors[] = Tools::displayError('An error occurred while updating the new window property for this object.').
+            $this->errors[] = $this->trans('An error occurred while updating the new window property for this object.', array(), 'Admin.Parameters.Notification').
                 ' <b>'.$this->table.'</b> '.
-                Tools::displayError('(cannot load object)');
+                $this->trans('(cannot load object)', array(), 'Admin.Notifications.Error');
         }
 
         return $object;

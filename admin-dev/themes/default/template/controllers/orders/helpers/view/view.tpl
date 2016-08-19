@@ -170,6 +170,7 @@
 							{l s='Partial refund'}
 						</a>
 					{/if}
+					{hook h='displayBackOfficeOrderActions' id_order=$order->id|intval}
 				</div>
 				<!-- Tab nav -->
 				<ul class="nav nav-tabs" id="tabOrder">
@@ -354,11 +355,11 @@
 													</span>
 													<button href="#" class="edit_shipping_number_link">
 														<i class="icon-pencil"></i>
-														{l s='Edit'}
+														{l s='Edit' d='Admin.Actions'}
 													</button>
 													<button href="#" class="cancel_shipping_number_link" style="display: none;">
 														<i class="icon-remove"></i>
-														{l s='Cancel'}
+														{l s='Cancel' d='Admin.Actions'}
 													</button>
 												</form>
 												{/if}
@@ -533,7 +534,7 @@
 									</td>
 									<td class="actions">
 										<button class="btn btn-primary" type="submit" name="submitAddPayment">
-											{l s='Add'}
+											{l s='Add' d='Admin.Actions'}
 										</button>
 									</td>
 								</tr>
@@ -570,7 +571,7 @@
 				{if $customer->id}
 					<div class="panel-heading">
 						<i class="icon-user"></i>
-						{l s='Customer'}
+						{l s='Customer' d='Admin.Global'}
 						<span class="badge">
 							<a href="?tab=AdminCustomers&amp;id_customer={$customer->id}&amp;viewcustomer&amp;token={getAdminToken tab='AdminCustomers'}">
 								{if Configuration::get('PS_B2B_ENABLE')}{$customer->company} - {/if}
@@ -595,12 +596,12 @@
 									</form>
 								{else}
 									<div class="alert alert-warning">
-										{l s='A registered customer account has already claimed this email address'}
+										{l s='A registered customer account has already claimed this email address' d='Admin.OrdersCustomers.Notification'}
 									</div>
 								{/if}
 							{else}
 								<dl class="well list-detail">
-									<dt>{l s='Email'}</dt>
+									<dt>{l s='Email' d='Admin.Global'}</dt>
 										<dd><a href="mailto:{$customer->email}"><i class="icon-envelope-o"></i> {$customer->email}</a></dd>
 									<dt>{l s='Account registered'}</dt>
 										<dd class="text-muted"><i class="icon-calendar-o"></i> {dateFormat date=$customer->date_add full=true}</dd>
@@ -637,7 +638,7 @@
 										<div class="col-lg-12">
 											<button type="submit" id="submitCustomerNote" class="btn btn-default pull-right" disabled="disabled">
 												<i class="icon-save"></i>
-												{l s='Save'}
+												{l s='Save' d='Admin.Actions'}
 											</button>
 										</div>
 									</div>
@@ -704,7 +705,7 @@
 										<div class="col-sm-6">
 											<a class="btn btn-default pull-right" href="?tab=AdminAddresses&amp;id_address={$addresses.delivery->id}&amp;addaddress&amp;realedit=1&amp;id_order={$order->id}&amp;address_type=1&amp;token={getAdminToken tab='AdminAddresses'}&amp;back={$smarty.server.REQUEST_URI|urlencode}">
 												<i class="icon-pencil"></i>
-												{l s='Edit'}
+												{l s='Edit' d='Admin.Actions'}
 											</a>
 											{displayAddressDetail address=$addresses.delivery newLine='<br />'}
 											{if $addresses.delivery->other}
@@ -754,7 +755,7 @@
 									<div class="col-sm-6">
 										<a class="btn btn-default pull-right" href="?tab=AdminAddresses&amp;id_address={$addresses.invoice->id}&amp;addaddress&amp;realedit=1&amp;id_order={$order->id}&amp;address_type=2&amp;back={$smarty.server.REQUEST_URI|urlencode}&amp;token={getAdminToken tab='AdminAddresses'}">
 											<i class="icon-pencil"></i>
-											{l s='Edit'}
+											{l s='Edit' d='Admin.Actions'}
 										</a>
 										{displayAddressDetail address=$addresses.invoice newLine='<br />'}
 										{if $addresses.invoice->other}
@@ -842,11 +843,11 @@
 									<span class="switch prestashop-switch fixed-width-lg">
 										<input type="radio" name="visibility" id="visibility_on" value="0" />
 										<label for="visibility_on">
-											{l s='Yes'}
+											{l s='Yes' d='Admin.Global'}
 										</label>
 										<input type="radio" name="visibility" id="visibility_off" value="1" checked="checked" />
 										<label for="visibility_off">
-											{l s='No'}
+											{l s='No' d='Admin.Global'}
 										</label>
 										<a class="slide-button btn"></a>
 									</span>
@@ -941,7 +942,7 @@
 										{elseif ($order->hasBeenPaid())}
 											{l s='Refund'}
 										{else}
-											{l s='Cancel'}
+											{l s='Cancel' d='Admin.Actions'}
 										{/if}
 									</th>
 									<th style="display:none" class="partial_refund_fields">
@@ -984,7 +985,16 @@
 					<div class="row">
 						<div class="col-xs-6">
 							<div class="alert alert-warning">
-								{l s='For this customer group, prices are displayed as: [1]%s[/1]' sprintf=[$smarty.capture.TaxMethod] tags=['<strong>']}
+                {* [1][/1] is for a HTML tag. *}
+								{l
+                  s='For this customer group, prices are displayed as: [1]%tax_method%[/1]'
+                  sprintf=[
+                    '%tax_method%' => $smarty.capture.TaxMethod,
+                    '[1]' => '<strong>',
+                    '[/1]' => '</strong>'
+                  ]
+                  d='Admin.OrdersCustomers.Notification'
+                }
 								{if !Configuration::get('PS_ORDER_RETURN')}
 									<br/><strong>{l s='Merchandise returns are disabled'}</strong>
 								{/if}
@@ -1088,7 +1098,7 @@
 													</div>
 													<input type="text" name="partialRefundShippingCost" value="0" />
 												</div>
-												<p class="help-block"><i class="icon-warning-sign"></i> {l s='(%s)' sprintf=$smarty.capture.TaxMethod}</p>
+												<p class="help-block"><i class="icon-warning-sign"></i> {l s='(%s)' sprintf=[$smarty.capture.TaxMethod]}</p>
 											</td>
 										</tr>
 										{if ($order->getTaxCalculationMethod() == $smarty.const.PS_TAX_EXC)}

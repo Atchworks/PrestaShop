@@ -3,11 +3,11 @@
 <table id="order-products" class="table table-bordered">
   <thead class="thead-default">
     <tr>
-      <th>{l s='Reference'}</th>
-      <th>{l s='Product'}</th>
-      <th>{l s='Quantity'}</th>
-      <th>{l s='Unit price'}</th>
-      <th>{l s='Total price'}</th>
+      <th>{l s='Reference' d='Shop.Theme.Catalog'}</th>
+      <th>{l s='Product' d='Shop.Theme.Catalog'}</th>
+      <th>{l s='Quantity' d='Shop.Theme.Catalog'}</th>
+      <th>{l s='Unit price' d='Shop.Theme.Catalog'}</th>
+      <th class="text-xs-right">{l s='Total price' d='Shop.Theme.Catalog'}</th>
     </tr>
   </thead>
 
@@ -15,8 +15,8 @@
     <tr>
       <td>{$product.reference}</td>
       <td>{$product.name}</td>
-      <td class="text-xs-right">{$product.quantity}</td>
-      <td class="text-xs-right">{$product.price}</td>
+      <td>{$product.quantity}</td>
+      <td>{$product.price}</td>
       <td class="text-xs-right">{$product.total}</td>
     </tr>
     {if $product.customizations}
@@ -48,9 +48,9 @@
       </tr>
     {/foreach}
 
-    <tr class="text-xs-right line-{$order.total.type}">
-      <td colspan="4">{$order.total.label}</td>
-      <td>{$order.total.value}</td>
+    <tr class="text-xs-right line-{$order.totals.total.type}">
+      <td colspan="4">{$order.totals.total.label}</td>
+      <td>{$order.totals.total.value}</td>
     </tr>
   </tfoot>
 </table>

@@ -1,20 +1,21 @@
 imports:
     - { resource: parameters.yml }
+    - { resource: set_parameters.php }
     - { resource: security.yml }
     - { resource: services.yml }
 
 # Put parameters here that don't need to change on each machine where the app is deployed
 # http://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
-    locale: en
     AdapterSecurityAdminClass: PrestaShop\PrestaShop\Adapter\Security\Admin
+    translator.class: PrestaShopBundle\Translation\Translator
 
 framework:
     assets:
         version: '1.7.0'
 
     #esi:             ~
-    #translator:      { fallbacks: ["%locale%"] }
+    translator:      { fallbacks: ["%locale%"] }
     secret:          "%secret%"
     router:
         resource: "%kernel.root_dir%/config/routing.yml"
@@ -33,7 +34,7 @@ framework:
         handler_id:  ~
     fragments:       ~
     http_method_override: true
- 
+
 # Monolog configuration #
 monolog:
     handlers:
@@ -91,3 +92,15 @@ swiftmailer:
     username:  "%mailer_user%"
     password:  "%mailer_password%"
     spool:     { type: memory }
+
+# Guzzle configuration
+csa_guzzle:
+    profiler:
+        enabled: "%kernel.debug%"
+    clients:
+        addons_api:
+            config: # you can specify the options as in http://docs.guzzlephp.org/en/latest/quickstart.html#creating-a-client
+                base_url: "https://api-addons.prestashop.com"
+                timeout: "5.0"
+                headers:
+                    Accept: "application/json"

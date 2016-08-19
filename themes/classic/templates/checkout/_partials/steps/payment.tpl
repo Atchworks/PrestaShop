@@ -8,16 +8,24 @@
           <div id="{$option.id}-container" class="payment-option clearfix">
             {* This is the way an option should be selected when Javascript is enabled *}
             <span class="custom-radio pull-xs-left">
-              <input class="ps-shown-by-j"s id="{$option.id}" type="radio" name="payment-option" required {if $selected_payment_option == $option.id} checked {/if}>
+              <input
+                class="ps-shown-by-js {if $option.binary} binary {/if}"
+                id="{$option.id}"
+                data-module-name="{$option.module_name}"
+                name="payment-option"
+                type="radio"
+                required
+                {if $selected_payment_option == $option.id} checked {/if}
+              >
               <span></span>
             </span>
             {* This is the way an option should be selected when Javascript is disabled *}
             <form method="GET" class="ps-hidden-by-js">
               {if $option.id === $selected_payment_option}
-                {l s='Selected'}
+                {l s='Selected' d='Shop.Theme.Checkout'}
               {else}
                 <button class="ps-hidden-by-js" type="submit" name="select_payment_option" value="{$option.id}">
-                  {l s='Choose'}
+                  {l s='Choose' d='Shop.Theme.Actions'}
                 </button>
               {/if}
             </form>
@@ -58,7 +66,7 @@
         </div>
       {/foreach}
     {foreachelse}
-      <p class="alert alert-danger">{l s='Unfortunately, there are no payment method available.'}</p>
+      <p class="alert alert-danger">{l s='Unfortunately, there are no payment method available.' d='Shop.Theme.Checkout'}</p>
     {/foreach}
   </div>
 
@@ -68,7 +76,7 @@
          because it makes ensuring they were checked very tricky and overcomplicates
          the template. Might change later.
       *}
-      {l s='By confirming your order, I certify that I have read and agree with all of the conditions below:'}
+      {l s='By confirming your order, I certify that I have read and agree with all of the conditions below:' d='Shop.Theme.Checkout'}
     </p>
 
     <form id="conditions-to-approve" method="GET">
@@ -98,18 +106,39 @@
     </form>
   {/if}
 
+  {if $show_final_summary}
+    {include file='checkout/_partials/order-final-summary.tpl'}
+  {/if}
+
   <div id="payment-confirmation">
     <div class="ps-shown-by-js">
       <button type="submit" {if !$selected_payment_option} disabled {/if} class="btn btn-primary center-block">
-        {l s='Order with an obligation to pay'}
+        {l s='Order with an obligation to pay' d='Shop.Theme.Checkout'}
       </button>
+      {if $show_final_summary}
+        <article class="alert alert-danger m-t-2 js-alert-payment-condtions" role="alert" data-alert="danger">
+          {l
+            s='Please make sure you\'ve chosen a [1]payment method[/1] and accepted the [2]terms and conditions[/2].'
+            sprintf=[
+              '[1]' => '<a href="#checkout-payment-step">',
+              '[/1]' => '</a>',
+              '[2]' => '<a href="#conditions-to-approve">',
+              '[/2]' => '</a>'
+            ]
+            d='Shop.Theme.Checkout'
+          }
+        </article>
+      {/if}
     </div>
     <div class="ps-hidden-by-js">
       {if $selected_payment_option and $all_conditions_approved}
-        <label for="pay-with-{$selected_payment_option}">{l s='Order with an obligation to pay'}</label>
+        <label for="pay-with-{$selected_payment_option}">{l s='Order with an obligation to pay' d='Shop.Theme.Checkout'}</label>
       {/if}
     </div>
   </div>
+
+  {hook h='displayPaymentByBinaries'}
+
   <div class="modal fade" id="modal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">

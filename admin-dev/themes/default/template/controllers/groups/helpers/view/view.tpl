@@ -34,7 +34,7 @@
 			<div class="form-horizontal">
 				<div class="form-group">
 					<label class="col-lg-3 control-label">{l s='Discount:'}</label>
-					<div class="col-lg-3"><p class="form-control-static">{l s='Discount: %.2f%%' sprintf=$group->reduction}</p></div>
+					<div class="col-lg-3"><p class="form-control-static">{l s='Discount: %.2f%%' sprintf=[$group->reduction]}</p></div>
 				</div>
 				<div class="form-group">
 					<label class="col-lg-3 control-label">{l s='Price display method:'}</label>
@@ -46,7 +46,7 @@
 				</div>
 				<div class="form-group">
 					<label class="col-lg-3 control-label">{l s='Show prices:'}</label>
-					<div class="col-lg-3"><p class="form-control-static">{if $group->show_prices}{l s='Yes'}{else}{l s='No'}{/if}</p></div>
+					<div class="col-lg-3"><p class="form-control-static">{if $group->show_prices}{l s='Yes' d='Admin.Global'}{else}{l s='No' d='Admin.Global'}{/if}</p></div>
 				</div>
 			</div>
 		</div>
@@ -68,7 +68,7 @@
 					{foreach $categorieReductions key=key item=category }
 						<tr class="alt_row">
 							<td>{$category.path}</td>
-							<td>{l s='Discount: %.2f%%' sprintf=$category.reduction}</td>
+							<td>{l s='Discount: %.2f%%' sprintf=[$category.reduction]}</td>
 						</tr>
 					{/foreach}
 					<tbody>

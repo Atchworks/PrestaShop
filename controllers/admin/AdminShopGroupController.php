@@ -40,7 +40,7 @@ class AdminShopGroupControllerCore extends AdminController
         $this->addRowAction('edit');
         $this->addRowAction('delete');
 
-        $this->context = Context::getContext();
+        parent::__construct();
 
         if (!Tools::getValue('realedit')) {
             $this->deleted = false;
@@ -50,7 +50,7 @@ class AdminShopGroupControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_shop_group' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs',
             ),
@@ -59,15 +59,6 @@ class AdminShopGroupControllerCore extends AdminController
                 'width' => 'auto',
                 'filter_key' => 'a!name',
             ),
-            /*'active' => array(
-                'title' => $this->l('Enabled'),
-                'align' => 'center',
-                'active' => 'status',
-                'type' => 'bool',
-                'orderby' => false,
-                'filter_key' => 'active',
-                'width' => 50,
-            ),*/
         );
 
         $this->fields_options = array(
@@ -83,11 +74,9 @@ class AdminShopGroupControllerCore extends AdminController
                         'visibility' => Shop::CONTEXT_ALL
                     )
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             )
         );
-
-        parent::__construct();
     }
 
     public function viewAccess($disable = false)
@@ -276,7 +265,7 @@ class AdminShopGroupControllerCore extends AdminController
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
 
@@ -330,9 +319,9 @@ class AdminShopGroupControllerCore extends AdminController
             $object = $this->loadObject();
 
             if (ShopGroup::getTotalShopGroup() == 1) {
-                $this->errors[] = Tools::displayError('You cannot delete or disable the last shop group.');
+                $this->errors[] = $this->trans('You cannot delete or disable the last shop group.', array(), 'Admin.Notifications.Error');
             } elseif ($object->haveShops()) {
-                $this->errors[] = Tools::displayError('You cannot delete or disable a shop group in use.');
+                $this->errors[] = $this->trans('You cannot delete or disable a shop group in use.', array(), 'Admin.Notifications.Error');
             }
 
             if (count($this->errors)) {

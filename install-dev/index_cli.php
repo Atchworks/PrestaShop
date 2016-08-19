@@ -27,12 +27,15 @@
 /* Redefine REQUEST_URI */
 $_SERVER['REQUEST_URI'] = '/install/index_cli.php';
 require_once dirname(__FILE__).'/init.php';
+require_once(__DIR__).DIRECTORY_SEPARATOR.'autoload.php';
 require_once _PS_INSTALL_PATH_.'classes/datas.php';
 ini_set('memory_limit', '128M');
 try {
     require_once _PS_INSTALL_PATH_.'classes/controllerConsole.php';
     InstallControllerConsole::execute($argc, $argv);
-    echo '-- Installation successfull! --'."\n";
+    echo '-- Installation successful! --'."\n";
+    exit(0);
 } catch (PrestashopInstallerException $e) {
     $e->displayMessage();
 }
+exit(1);

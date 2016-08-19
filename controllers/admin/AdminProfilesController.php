@@ -41,6 +41,8 @@ class AdminProfilesControllerCore extends AdminController
         $this->addRowAction('delete');
         $this->addRowActionSkipList('delete', array(1));
 
+        parent::__construct();
+
         $this->bulk_actions = array(
             'delete' => array(
                 'text' => $this->l('Delete selected'),
@@ -51,13 +53,13 @@ class AdminProfilesControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_profile' => array(
-                        'title' => $this->l('ID'),
+                        'title' => $this->trans('ID', array(), 'Admin.Global'),
                         'align' => 'center',
                         'class' => 'fixed-width-xs'
                         ),
-            'name' => array('title' => $this->l('Name'))
+            'name' => array('title' => $this->trans('Name', array(), 'Admin.Global'))
             );
-            
+
         $this->identifier = 'id_profile';
 
         $this->fields_form = array(
@@ -68,14 +70,14 @@ class AdminProfilesControllerCore extends AdminController
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'required' => true,
                     'lang' => true,
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
 
@@ -83,15 +85,13 @@ class AdminProfilesControllerCore extends AdminController
         foreach (Profile::getProfiles($this->context->language->id) as $profil) {
             $list_profile[] = array('value' => $profil['id_profile'], 'name' => $profil['name']);
         }
-
-        parent::__construct();
     }
 
     public function postProcess()
     {
         /* PrestaShop demo mode */
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
         /* PrestaShop demo mode*/
@@ -112,7 +112,7 @@ class AdminProfilesControllerCore extends AdminController
                 'icon' => 'process-icon-new'
             );
         }
-        
+
         parent::initPageHeaderToolbar();
     }
 }

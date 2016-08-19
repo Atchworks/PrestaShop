@@ -28,7 +28,28 @@ function enableOrDisableOrderButton() {
 
   $('#' + option + '-additional-information').show();
   $('#pay-with-' + option + '-form').show();
-  $('#payment-confirmation button').attr('disabled', !show);
+
+  var module_name = $(`#${option}`).data('module-name');
+
+  if ($('#' + option).hasClass('binary')) {
+    var payment_option = `.js-payment-${module_name}`;
+    $('#payment-confirmation').hide();
+    $(payment_option).show();
+    if (show) {
+      $(payment_option).removeClass('disabled');
+    } else {
+      $(payment_option).addClass('disabled');
+    }
+  } else {
+    $('.js-payment-binary').hide();
+    $('#payment-confirmation').show();
+    $('#payment-confirmation button').attr('disabled', !show);
+    if (show) {
+      $('.js-alert-payment-condtions').hide();
+    } else {
+      $('.js-alert-payment-condtions').show();
+    }
+  }
 }
 
 function confirmPayment () {
@@ -39,11 +60,9 @@ function confirmPayment () {
 }
 
 function refreshDeliveryOptions (event) {
-  let params = $('#delivery-method').serialize() + '&action=selectDeliveryOption';
-  $.post('', params).then(resp => {
-    $.post(location.href, null, null, 'json').then(function (resp) {
-      $('#checkout-cart-summary').replaceWith(resp.preview);
-    });
+  let params = $('#delivery-method').serialize();
+  $.post($('#delivery-method').data('url-update'), params).then(function (resp) {
+    $('#checkout-cart-summary').replaceWith(resp.preview);
   });
 }
 
@@ -66,20 +85,41 @@ function setupCheckoutScripts () {
   $('body').on('change', 'input[name="payment-option"]', enableOrDisableOrderButton);
   $('body').on('change', 'input[type="checkbox"][data-action="hideOrShow"]', hideOrShow);
 
-  $('body').on('click', '.checkout-step.-reachable h1', function (event) {
+  $('.js-edit-addresses').on('click', (event) => {
+    event.stopPropagation();
+    $('#checkout-addresses-step').trigger('click');
+  });
+
+  $('.js-edit-delivery').on('click', (event) => {
+    event.stopPropagation();
+    $('#checkout-delivery-step').trigger('click');
+  });
+
+  changeCurrentCheckoutStep();
+  collapsePaymentOptions();
+}
+
+function changeCurrentCheckoutStep() {
+  $('.checkout-step').off('click');
+
+  $('.-js-current').prevAll().add($('#checkout-personal-information-step.-js-current').nextAll()).on('click', function(event) {
     $('.-js-current, .-current').removeClass('-js-current -current');
     $(event.target).closest('.checkout-step').toggleClass('-js-current');
-  });
-  $('body').on('click', '.checkout-step.-unreachable h1', function (event) {
-    $('button.continue').last().click();
+    prestashop.emit('change current checkout step');
   });
 
-  collapsePaymentOptions();
-
+  $('.-js-current:not(#checkout-personal-information-step)').nextAll().on('click', function(event) {
+    $('.-js-current button.continue').click();
+    prestashop.emit('change current checkout step');
+  });
 }
 
 $(document).ready(() => {
   if ($('body#checkout').length === 1) {
     setupCheckoutScripts();
   }
+
+  prestashop.on('change current checkout step', function(event) {
+    changeCurrentCheckoutStep();
+  });
 });

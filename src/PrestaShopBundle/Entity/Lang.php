@@ -52,6 +52,13 @@ class Lang
     /**
      * @var string
      *
+     * @ORM\Column(name="locale", type="string", length=5)
+     */
+    private $locale;
+
+    /**
+     * @var string
+     *
      * @ORM\Column(name="date_format_lite", type="string", length=32)
      */
     private $dateFormatLite;
@@ -70,6 +77,28 @@ class Lang
      */
     private $isRtl;
 
+    /**
+     * @ORM\OneToMany(targetEntity="Translation", mappedBy="lang")
+     */
+    private $translations;
+
+    /**
+     * @ORM\ManyToMany(targetEntity="PrestaShopBundle\Entity\Shop", cascade={"remove", "persist"})
+     * @ORM\JoinTable(
+     *      joinColumns={@ORM\JoinColumn(name="id_lang", referencedColumnName="id_lang", onDelete="CASCADE")},
+     *      inverseJoinColumns={@ORM\JoinColumn(name="id_shop", referencedColumnName="id_shop")}
+     * )
+     *
+     */
+    private $shops;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->shops = new ArrayCollection();
+    }
 
     /**
      * Get id
@@ -247,5 +276,60 @@ class Lang
     public function getIsRtl()
     {
         return $this->isRtl;
+    }
+
+    /**
+     *
+     * @return string
+     */
+    public function getLocale()
+    {
+        return $this->locale;
+    }
+
+    /**
+     *
+     * @param string $locale
+     * @return Lang
+     */
+    public function setLocale($locale)
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    /**
+     * Add shop
+     *
+     * @param \PrestaShopBundle\Entity\Shop $shop
+     *
+     * @return Attribute
+     */
+    public function addShop(\PrestaShopBundle\Entity\Shop $shop)
+    {
+        $this->shops[] = $shop;
+
+        return $this;
+    }
+
+    /**
+     * Remove shop
+     *
+     * @param \PrestaShopBundle\Entity\Shop $shop
+     */
+    public function removeShop(\PrestaShopBundle\Entity\Shop $shop)
+    {
+        $this->shops->removeElement($shop);
+    }
+
+    /**
+     * Get shops
+     *
+     * @return \Doctrine\Common\Collections\Collection
+     */
+    public function getShops()
+    {
+        return $this->shops;
     }
 }

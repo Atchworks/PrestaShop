@@ -28,23 +28,34 @@ class CheckoutPaymentStepCore extends AbstractCheckoutStep
             $this->getTranslator()->trans(
                 'Payment',
                 array(),
-                'Checkout'
+                'Shop.Theme.Checkout'
             )
         );
     }
 
     public function render(array $extraParams = array())
     {
-        return $this->renderTemplate(
-            $this->getTemplate(), $extraParams, array(
-                'payment_options' => $this
-                    ->paymentOptionsFinder
-                    ->getPaymentOptionsForTemplate(),
-                'conditions_to_approve' => $this
-                    ->conditionsToApproveFinder
-                    ->getConditionsToApproveForTemplate(),
-                'selected_payment_option' => $this->selected_payment_option,
-            )
-        );
+        $deliveryOptions = $this->getCheckoutSession()->getDeliveryOptions();
+        $deliveryOptionKey = $this->getCheckoutSession()->getSelectedDeliveryOption();
+        if (isset($deliveryOptions[$deliveryOptionKey])) {
+            $selectedDeliveryOption = $deliveryOptions[$deliveryOptionKey];
+        } else {
+            $selectedDeliveryOption = 0;
+        }
+        unset($selectedDeliveryOption['product_list']);
+
+        $assignedVars = array(
+            'payment_options' => $this
+                ->paymentOptionsFinder
+                ->getPaymentOptionsForTemplate(),
+            'conditions_to_approve' => $this
+                ->conditionsToApproveFinder
+                ->getConditionsToApproveForTemplate(),
+            'selected_payment_option' => $this->selected_payment_option,
+            'selected_delivery_option' => $selectedDeliveryOption,
+            'show_final_summary' => Configuration::get('PS_FINAL_SUMMARY_ENABLED'),
+            );
+
+        return $this->renderTemplate($this->getTemplate(), $extraParams, $assignedVars);
     }
 }

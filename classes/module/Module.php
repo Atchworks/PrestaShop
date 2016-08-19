@@ -143,6 +143,9 @@ abstract class ModuleCore
     /** @var array Array filled with cache permissions (modules / employee profiles) */
     protected static $cache_permissions = array();
 
+    /** @var array Array filled with cache permissions (modules / employee profiles) */
+    protected static $cache_lgc_access = array();
+
     /** @var Context */
     protected $context;
 
@@ -334,7 +337,7 @@ abstract class ModuleCore
         }
 
         // Check if module is installed
-        $result = (new ModuleDataProvider(new LegacyLogger()))->isInstalled($this->name);
+        $result = (new ModuleDataProvider(new LegacyLogger(), $this->getTranslator()))->isInstalled($this->name);
         if ($result) {
             $this->_errors[] = Tools::displayError('This module has already been installed.');
             return false;
@@ -359,23 +362,22 @@ abstract class ModuleCore
         $this->enable();
 
         // Permissions management
-        Db::getInstance()->execute('
-            INSERT INTO `'._DB_PREFIX_.'module_access` (`id_profile`, `id_module`, `view`, `configure`, `uninstall`) (
-                SELECT id_profile, '.(int)$this->id.', 1, 1, 1
-                FROM '._DB_PREFIX_.'access a
-                WHERE id_tab = (
-                    SELECT `id_tab` FROM '._DB_PREFIX_.'tab
-                    WHERE class_name = \'AdminModules\' LIMIT 1)
-                AND a.`view` = 1)');
+        foreach (array('CREATE', 'READ', 'UPDATE', 'DELETE') as $action) {
+            $slug = 'ROLE_MOD_MODULE_'.strtoupper($this->name).'_'.$action;
 
-        Db::getInstance()->execute('
-            INSERT INTO `'._DB_PREFIX_.'module_access` (`id_profile`, `id_module`, `view`, `configure`, `uninstall`) (
-                SELECT id_profile, '.(int)$this->id.', 1, 0, 0
-                FROM '._DB_PREFIX_.'access a
-                WHERE id_tab = (
-                    SELECT `id_tab` FROM '._DB_PREFIX_.'tab
-                    WHERE class_name = \'AdminModules\' LIMIT 1)
-                AND a.`view` = 0)');
+            Db::getInstance()->execute(
+                'INSERT INTO `'._DB_PREFIX_.'authorization_role` (`slug`) VALUES ("'.$slug.'")'
+            );
+
+            Db::getInstance()->execute('
+                INSERT INTO `'._DB_PREFIX_.'module_access` (`id_profile`, `id_authorization_role`) (
+                    SELECT id_profile, "'.Db::getInstance()->Insert_ID().'"
+                    FROM '._DB_PREFIX_.'access a
+                    LEFT JOIN `'._DB_PREFIX_.'authorization_role` r
+                    ON r.id_authorization_role = a.id_authorization_role
+                    WHERE r.slug = "ROLE_MOD_TAB_ADMINMODULES_'.$action.'"
+            )');
+        }
 
         // Adding Restrictions for client groups
         Group::addRestrictionsForModule($this->id, Shop::getShops(true, null, true));
@@ -662,7 +664,12 @@ abstract class ModuleCore
         $this->disable(true);
 
         // Delete permissions module access
-        Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'module_access` WHERE `id_module` = '.(int)$this->id);
+        $roles = Db::getInstance()->executeS('SELECT `id_authorization_role` FROM `'._DB_PREFIX_.'authorization_role` WHERE `slug` LIKE "ROLE_MOD_MODULE_'.strtoupper($this->name).'_%"');
+
+        foreach ($roles as $role) {
+            Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'module_access` WHERE `id_authorization_role` = '.$role['id_authorization_role']);
+            Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'authorization_role` WHERE `id_authorization_role` = '.$role['id_authorization_role']);
+        }
 
         // Remove restrictions for client groups
         Group::truncateRestrictionsByModule($this->id);
@@ -840,7 +847,7 @@ abstract class ModuleCore
             <img src="../img/l/'.$default_language.'.jpg" class="pointer" id="language_current_'.$id.'" onclick="toggleLanguageFlags(this);" alt="" />
         </div>
         <div id="languages_'.$id.'" class="language_flags">
-            '.$this->l('Choose language:').'<br /><br />';
+            '.$this->getTranslator()->trans('Choose language:', array(), 'Admin.Actions').'<br /><br />';
         foreach ($languages as $language) {
             if ($use_vars_instead_of_ids) {
                 $output .= '<img src="../img/l/'.(int)$language['id_lang'].'.jpg" class="pointer" alt="'.$language['name'].'" title="'.$language['name'].'" onclick="changeLanguage(\''.$id.'\', '.$ids.', '.$language['id_lang'].', \''.$language['iso_code'].'\');" /> ';
@@ -1840,6 +1847,10 @@ abstract class ModuleCore
             return $string;
         }
 
+        if (($translation = Context::getContext()->getTranslator()->trans($string)) !== $string) {
+            return $translation;
+        }
+
         return Translate::getModuleTranslation($this, $string, ($specific) ? $specific : $this->name);
     }
 
@@ -2172,7 +2183,7 @@ abstract class ModuleCore
     public function display($file, $template, $cache_id = null, $compile_id = null)
     {
         if (($overloaded = Module::_isTemplateOverloadedStatic(basename($file, '.php'), $template)) === null) {
-            return Tools::displayError('No template found for module').' '.basename($file, '.php');
+            return Tools::displayError('No template found for module').' '.basename($file, '.php').(_PS_MODE_DEV_ ? ' ('.$template.')' : '');
         } else {
             $this->smarty->assign(array(
                 'module_dir' =>    __PS_BASE_URI__.'modules/'.basename($file, '.php').'/',
@@ -2372,6 +2383,82 @@ abstract class ModuleCore
     }
 
     /**
+     *
+     * @param int $idProfile
+     * @return array
+     */
+    public static function getModulesAccessesByIdProfile($idProfile)
+    {
+        if (empty(self::$cache_modules_roles)) {
+            self::warmupRolesCache();
+        }
+
+        $roles = self::$cache_lgc_access;
+
+        $profileRoles = Db::getInstance()->executeS('
+            SELECT `slug`,
+                `slug` LIKE "%CREATE" as "add",
+                `slug` LIKE "%READ" as "view",
+                `slug` LIKE "%UPDATE" as "configure",
+                `slug` LIKE "%DELETE" as "uninstall"
+            FROM `'._DB_PREFIX_.'authorization_role` a
+            LEFT JOIN `'._DB_PREFIX_.'module_access` j ON j.id_authorization_role = a.id_authorization_role
+            WHERE `slug` LIKE "ROLE_MOD_MODULE_%"
+            AND j.id_profile = "'.$idProfile.'"
+            ORDER BY a.slug
+        ');
+
+        foreach ($profileRoles as $role) {
+            preg_match(
+                '/ROLE_MOD_MODULE_(?P<moduleName>[A-Z0-9_]+)_(?P<auth>[A-Z]+)/',
+                $role['slug'],
+                $matches
+            );
+
+            if (($key = array_search('1', $role))) {
+                $roles[$matches['moduleName']][$key] = '1';
+            }
+        }
+
+        return $roles;
+    }
+
+    private static function warmupRolesCache()
+    {
+        $result = Db::getInstance()->executeS('
+            SELECT `slug`,
+                `slug` LIKE "%CREATE" as "add",
+                `slug` LIKE "%READ" as "view",
+                `slug` LIKE "%UPDATE" as "configure",
+                `slug` LIKE "%DELETE" as "uninstall"
+            FROM `'._DB_PREFIX_.'authorization_role` a
+            WHERE `slug` LIKE "ROLE_MOD_MODULE_%"
+            ORDER BY a.slug
+        ');
+
+        foreach ($result as $row) {
+            preg_match(
+                '/ROLE_MOD_MODULE_(?P<moduleName>[A-Z0-9_]+)_(?P<auth>[A-Z]+)/',
+                $row['slug'],
+                $matches
+            );
+
+            $m = Module::getInstanceByName(strtolower($matches['moduleName']));
+
+            // the following condition handles invalid modules
+            if ($m && !isset(self::$cache_lgc_access[$matches['moduleName']])) {
+                self::$cache_lgc_access[$matches['moduleName']] = array();
+                self::$cache_lgc_access[$matches['moduleName']]['id_module'] = $m->id;
+                self::$cache_lgc_access[$matches['moduleName']]['name'] = $m->displayName;
+                self::$cache_lgc_access[$matches['moduleName']]['add'] = '0';
+                self::$cache_lgc_access[$matches['moduleName']]['view'] = '0';
+                self::$cache_lgc_access[$matches['moduleName']]['configure'] = '0';
+                self::$cache_lgc_access[$matches['moduleName']]['uninstall'] = '0';
+            }
+        }
+    }
+
+    /**
      * Check employee permission for module
      * @param array $variable (action)
      * @param object $employee
@@ -2403,21 +2490,9 @@ abstract class ModuleCore
             return true;
         }
 
-        if (!isset(self::$cache_permissions[$employee->id_profile])) {
-            self::$cache_permissions[$employee->id_profile] = array();
-            $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS('SELECT `id_module`, `view`, `configure`, `uninstall` FROM `'._DB_PREFIX_.'module_access` WHERE `id_profile` = '.(int)$employee->id_profile);
-            foreach ($result as $row) {
-                self::$cache_permissions[$employee->id_profile][$row['id_module']]['view'] = $row['view'];
-                self::$cache_permissions[$employee->id_profile][$row['id_module']]['configure'] = $row['configure'];
-                self::$cache_permissions[$employee->id_profile][$row['id_module']]['uninstall'] = $row['uninstall'];
-            }
-        }
+        $slug = Access::findSlugByIdModule($id_module).Access::getAuthorizationFromLegacy($variable);
 
-        if (!isset(self::$cache_permissions[$employee->id_profile][$id_module])) {
-            throw new PrestaShopException('No access reference in table module_access for id_module '.$id_module.'.');
-        }
-
-        return (bool)self::$cache_permissions[$employee->id_profile][$id_module][$variable];
+        return Access::isGranted($slug, $employee->id_profile);
     }
 
     /**
@@ -2552,7 +2627,7 @@ abstract class ModuleCore
      * Install module's controllers using public property $controllers
      * @return bool
      */
-    private function installControllers()
+    protected function installControllers()
     {
         foreach ($this->controllers as $controller) {
             $page = 'module-'.$this->name.'-'.$controller;
@@ -2968,6 +3043,16 @@ abstract class ModuleCore
             }
         }
         return $result;
+    }
+
+    public function getTranslator()
+    {
+        return Context::getContext()->getTranslator();
+    }
+
+    protected function trans($id, array $parameters = array(), $domain = null, $locale = null)
+    {
+        return $this->getTranslator()->trans($id, $parameters, $domain, $locale);
     }
 }
 

@@ -44,11 +44,11 @@
 		<table id="products_in_supply_order" class="table">
 			<thead>
 				<tr class="nodrag nodrop">
-					<th><span class="title_box">{l s='Reference'}</span></th>
+					<th><span class="title_box">{l s='Reference' d='Admin.Global'}</span></th>
 					<th><span class="title_box">{l s='EAN13'}</span></th>
 					<th><span class="title_box">{l s='UPC'}</span></th>
 					<th><span class="title_box">{l s='Supplier Reference'}</span></th>
-					<th><span class="title_box">{l s='Name'}</span></th>
+					<th><span class="title_box">{l s='Name' d='Admin.Global'}</span></th>
 					<th class="fixed-width-md"><span class="title_box">{l s='Unit Price (tax excl.)'}</span></th>
 					<th class="fixed-width-xs"><span class="title_box">{l s='Quantity'}</span></th>
 					<th class="fixed-width-md"><span class="title_box">{l s='Discount rate'}</span></th>
@@ -112,7 +112,7 @@
 				<i class="process-icon-save"></i> {l s='Save order'}
 			</button>
 			<a class="btn btn-default" onclick="window.history.back();">
-				<i class="process-icon-cancel"></i> {l s='Cancel'}
+				<i class="process-icon-cancel"></i> {l s='Cancel' d='Admin.Actions'}
 			</a>
 			<button type="submit" class="btn btn-default btn btn-default pull-right" name="submitAddsupply_orderAndStay"><i class="process-icon-save"></i> {l s='Save order and stay'}</button>
 		</div>

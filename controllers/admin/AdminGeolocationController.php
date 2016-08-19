@@ -44,10 +44,10 @@ class AdminGeolocationControllerCore extends AdminController
                         'type' => 'bool'
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'geolocationCountries' => array(
-                'title' =>    $this->l('Options'),
+                'title' =>    $this->trans('Options', array(), 'Admin.Global'),
                 'icon' =>    'icon-map-marker',
                 'description' => $this->l('The following features are only available if you enable the Geolocation by IP address feature.'),
                 'fields' =>    array(
@@ -67,7 +67,7 @@ class AdminGeolocationControllerCore extends AdminController
                                         array('key' => _PS_GEOLOCATION_NO_ORDER_, 'name' => $this->l('Visitors can see your catalog but cannot place an order.')))
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'geolocationWhitelist' => array(
                 'title' =>    $this->l('IP address whitelist'),
@@ -76,7 +76,7 @@ class AdminGeolocationControllerCore extends AdminController
                 'fields' =>    array(
                     'PS_GEOLOCATION_WHITELIST' => array('title' => $this->l('Whitelisted IP addresses'), 'type' => 'textarea_newlines', 'cols' => 15, 'rows' => 30),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
         );
     }
@@ -91,12 +91,12 @@ class AdminGeolocationControllerCore extends AdminController
         }
         // stop processing if geolocation is set to yes but geolite pack is not available
         elseif (Tools::getValue('PS_GEOLOCATION_ENABLED')) {
-            $this->errors[] = Tools::displayError('The geolocation database is unavailable.');
+            $this->errors[] = $this->trans('The geolocation database is unavailable.', array(), 'Admin.International.Notification');
         }
 
         if (empty($this->errors)) {
             if (!is_array(Tools::getValue('countries')) || !count(Tools::getValue('countries'))) {
-                $this->errors[] = Tools::displayError('Country selection is invalid.');
+                $this->errors[] = $this->trans('Country selection is invalid.', array(), 'Admin.International.Notification');
             } else {
                 Configuration::updateValue(
                     'PS_GEOLOCATION_BEHAVIOR',
@@ -107,7 +107,7 @@ class AdminGeolocationControllerCore extends AdminController
             }
 
             if (!Validate::isCleanHtml(Tools::getValue('PS_GEOLOCATION_WHITELIST'))) {
-                $this->errors[] = Tools::displayError('Invalid whitelist');
+                $this->errors[] = $this->trans('Invalid whitelist', array(), 'Admin.International.Notification');
             } else {
                 Configuration::updateValue(
                     'PS_GEOLOCATION_WHITELIST',

@@ -26,30 +26,28 @@
 
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 use PrestaShop\PrestaShop\Core\Addon\Theme\ThemeManagerBuilder;
-use PrestaShopBundle\CacheWarmer\LocalizationCacheWarmer;
+use PrestaShopBundle\Cache\LocalizationWarmer;
 use Symfony\Component\Yaml\Yaml;
 
 class InstallModelInstall extends InstallAbstractModel
 {
     const SETTINGS_FILE = 'config/settings.inc.php';
+    const BOOTSTRAP_FILE = 'config/bootstrap.php';
 
-    /**
-     * @var FileLogger
-     */
-    public $logger;
-
-    public function __construct()
-    {
-        parent::__construct();
-
-        $cacheDir = _PS_ROOT_DIR_.'/app/logs/';
-        $file = $cacheDir .(_PS_MODE_DEV_ ? 'dev' : 'prod').'_'.@date('Ymd').'_installation.log';
-        $this->logger = new FileLogger();
-        $this->logger->setFilename($file);
-    }
+    protected $logger;
 
     public function setError($errors)
     {
+        static $logger = null;
+
+        if (null === $logger) {
+            $cacheDir = _PS_ROOT_DIR_.'/app/logs/';
+            $file = $cacheDir .(_PS_MODE_DEV_ ? 'dev' : 'prod').'_'.@date('Ymd').'_installation.log';
+            $logger = new FileLogger();
+            $logger->setFilename($file);
+            $this->logger = $logger;
+        }
+
         if (!is_array($errors)) {
             $errors = array($errors);
         }
@@ -77,15 +75,15 @@ class InstallModelInstall extends InstallAbstractModel
             file_exists(_PS_ROOT_DIR_.DIRECTORY_SEPARATOR.self::SETTINGS_FILE)
             && !is_writable(_PS_ROOT_DIR_.DIRECTORY_SEPARATOR.self::SETTINGS_FILE)
         ) {
-            $this->setError($this->language->l('%s file is not writable (check permissions)', self::SETTINGS_FILE));
+            $this->setError($this->translator->trans('%file% file is not writable (check permissions)', array('%file%' => self::SETTINGS_FILE), 'Install'));
             return false;
         } elseif (
             !file_exists(_PS_ROOT_DIR_.DIRECTORY_SEPARATOR.self::SETTINGS_FILE)
             && !is_writable(_PS_ROOT_DIR_.DIRECTORY_SEPARATOR.dirname(self::SETTINGS_FILE))
         ) {
-            $this->setError($this->language->l(
-                '%s folder is not writable (check permissions)',
-                dirname(self::SETTINGS_FILE))
+            $this->setError($this->translator->trans(
+                '%folder% folder is not writable (check permissions)',
+                array('%folder%' => dirname(self::SETTINGS_FILE)), 'Install')
             );
             return false;
         }
@@ -93,33 +91,33 @@ class InstallModelInstall extends InstallAbstractModel
         $secret = Tools::passwdGen(56);
         $cookie_key = Tools::passwdGen(8);
         $cookie_iv = Tools::passwdGen(56);
+        $database_port = null;
 
-        if (file_exists(_PS_ROOT_DIR_.'/app/config/parameters.yml')) {
-            $config = Yaml::parse(file_get_contents(_PS_ROOT_DIR_.'/app/config/parameters.yml'));
-            $secret = $config['parameters']['secret'];
-            $cookie_key = $config['parameters']['cookie_key'];
-            $cookie_iv = $config['parameters']['cookie_iv'];
+        $splits = preg_split('#:#', $database_host);
+        $nbSplits = count($splits);
+
+        if ($nbSplits >= 2) {
+            $database_port = array_pop($splits);
+            $database_host = implode(':', $splits);
         }
 
-        $parameters  = array(
-            'parameters' => array(
-                'database_host' => $database_host,
-                'database_port' => '~',
-                'database_user' => $database_user,
-                'database_password' => $database_password,
-                'database_name' => $database_name,
-                'database_prefix' => $database_prefix,
-                'database_engine' =>  $database_engine,
-                'cookie_key' => $cookie_key,
-                'cookie_iv' =>  $cookie_iv,
-                'ps_caching' => 'CacheMemcache',
-                'ps_cache_enable' => false,
-                'ps_creation_date' => date('Y-m-d'),
-                'secret' => $secret,
-                'mailer_transport' => 'smtp',
-                'mailer_host' => '127.0.0.1',
-                'mailer_user' => '~',
-                'mailer_password' => '~',
+        $parameters  = array_replace_recursive(
+            Yaml::parse(file_get_contents(_PS_ROOT_DIR_.'/app/config/parameters.yml.dist')),
+            array(
+                'parameters' => array(
+                    'database_host' => $database_host,
+                    'database_port' => $database_port,
+                    'database_user' => $database_user,
+                    'database_password' => $database_password,
+                    'database_name' => $database_name,
+                    'database_prefix' => $database_prefix,
+                    'database_engine' =>  $database_engine,
+                    'cookie_key' => $cookie_key,
+                    'cookie_iv' =>  $cookie_iv,
+                    'ps_creation_date' => date('Y-m-d'),
+                    'secret' => $secret,
+                    'locale' => $this->language->getLanguage()->getMetaInformation('locale')
+                )
             )
         );
 
@@ -135,17 +133,51 @@ class InstallModelInstall extends InstallAbstractModel
         $settings_content .= "//@deprecated 1.7";
 
         if (!file_put_contents(_PS_ROOT_DIR_.'/'.self::SETTINGS_FILE, $settings_content)) {
-            $this->setError($this->language->l('Cannot write settings file'));
+            $this->setError($this->translator->trans('Cannot write settings file', array(), 'Install'));
             return false;
         }
 
-        if (!file_put_contents(_PS_ROOT_DIR_.'/app/config/parameters.yml', Yaml::dump($parameters))) {
-            $this->setError($this->language->l('Cannot write app/config/parameters.yml file'));
+        if (!$this->processParameters($parameters)) {
             return false;
         }
 
-        // Clear the cache
+        return true;
+    }
 
+    /**
+     * Replace "parameters.yml" with "parameters.php" in "app/config"
+     *
+     * @param $parameters
+     * @return bool|int
+     */
+    public function processParameters($parameters)
+    {
+        $parametersContent = sprintf('<?php return %s;', var_export($parameters, true));
+        if (!file_put_contents(_PS_ROOT_DIR_ . '/app/config/parameters.php', $parametersContent)) {
+            $this->setError($this->translator->trans('Cannot write app/config/parameters.php file', array(), 'Install'));
+
+            return false;
+        } else {
+            return $this->emptyYamlParameters();
+        }
+    }
+
+    /**
+     * Prevent availability of YAML parameters
+     */
+    protected function emptyYamlParameters()
+    {
+        if (!file_put_contents(_PS_ROOT_DIR_ . '/app/config/parameters.yml', 'parameters:')) {
+            $this->setError($this->translator->trans('Cannot write app/config/parameters.yml file', array(), 'Install'));
+
+            return false;
+        }
+
+        return $this->clearCache();
+    }
+
+    protected function clearCache()
+    {
         $sf2Refresh = new \PrestaShopBundle\Service\Cache\Refresh('prod');
         $sf2Refresh->addCacheClear();
         $output = $sf2Refresh->execute();
@@ -155,7 +187,7 @@ class InstallModelInstall extends InstallAbstractModel
             return false;
         }
 
-        $sf2Refresh = new \PrestaShopBundle\Service\Cache\Refresh('dev');
+        $sf2Refresh = new \PrestaShopBundle\Service\Cache\Refresh();
         $sf2Refresh->addCacheClear();
         $output = $sf2Refresh->execute();
 
@@ -174,7 +206,7 @@ class InstallModelInstall extends InstallAbstractModel
     public function installDatabase($clear_database = false)
     {
         // Clear database (only tables with same prefix)
-        require_once _PS_ROOT_DIR_.'/'.self::SETTINGS_FILE;
+        require_once _PS_ROOT_DIR_.'/'.self::BOOTSTRAP_FILE;
         if ($clear_database) {
             $this->clearDatabase();
         }
@@ -192,13 +224,13 @@ class InstallModelInstall extends InstallAbstractModel
         try {
             $sql_loader->parse_file(_PS_INSTALL_DATA_PATH_.'db_structure.sql');
         } catch (PrestashopInstallerException $e) {
-            $this->setError($this->language->l('Database structure file not found'));
+            $this->setError($this->translator->trans('Database structure file not found', array(), 'Install'));
             return false;
         }
 
         if ($errors = $sql_loader->getErrors()) {
             foreach ($errors as $error) {
-                $this->setError($this->language->l('SQL error on query <i>%s</i>', $error['error']));
+                $this->setError($this->translator->trans('SQL error on query <i>%error%</i>', array('%error%' => $error['error']), 'Install'));
             }
             return false;
         }
@@ -237,6 +269,7 @@ class InstallModelInstall extends InstallAbstractModel
     public function clearDatabase($truncate = false)
     {
         $instance = Db::getInstance();
+        $instance->execute('SET FOREIGN_KEY_CHECKS=0');
         $sqlRequest = (($truncate) ? 'TRUNCATE' : 'DROP TABLE');
         foreach ($instance->executeS('SHOW TABLES') as $row) {
             $table = current($row);
@@ -245,6 +278,7 @@ class InstallModelInstall extends InstallAbstractModel
             }
         }
         $instance->execute(rtrim($sqlRequest, ','));
+        $instance->execute('SET FOREIGN_KEY_CHECKS=1');
     }
 
     /**
@@ -358,7 +392,7 @@ class InstallModelInstall extends InstallAbstractModel
         $shop_group->name = 'Default';
         $shop_group->active = true;
         if (!$shop_group->add()) {
-            $this->setError($this->language->l('Cannot create group shop').' / '.Db::getInstance()->getMsgError());
+            $this->setError($this->translator->trans('Cannot create group shop', array(), 'Install').' / '.Db::getInstance()->getMsgError());
             return false;
         }
 
@@ -370,7 +404,7 @@ class InstallModelInstall extends InstallAbstractModel
         $shop->theme_name = _THEME_NAME_;
         $shop->name = $shop_name;
         if (!$shop->add()) {
-            $this->setError($this->language->l('Cannot create shop').' / '.Db::getInstance()->getMsgError());
+            $this->setError($this->translator->trans('Cannot create shop', array(), 'Install').' / '.Db::getInstance()->getMsgError());
             return false;
         }
         Context::getContext()->shop = $shop;
@@ -384,7 +418,7 @@ class InstallModelInstall extends InstallAbstractModel
         $shop_url->main = true;
         $shop_url->active = true;
         if (!$shop_url->add()) {
-            $this->setError($this->language->l('Cannot create shop URL').' / '.Db::getInstance()->getMsgError());
+            $this->setError($this->translator->trans('Cannot create shop URL', array(), 'Install').' / '.Db::getInstance()->getMsgError());
             return false;
         }
 
@@ -410,11 +444,11 @@ class InstallModelInstall extends InstallAbstractModel
                 continue;
             }
             if (!file_exists(_PS_INSTALL_LANGS_PATH_.$iso.'/language.xml')) {
-                throw new PrestashopInstallerException($this->language->l('File "language.xml" not found for language iso "%s"', $iso));
+                throw new PrestashopInstallerException($this->translator->trans('File "language.xml" not found for language iso "%iso%"', array('%iso%' => $iso), 'Install'));
             }
 
             if (!$xml = @simplexml_load_file(_PS_INSTALL_LANGS_PATH_.$iso.'/language.xml')) {
-                throw new PrestashopInstallerException($this->language->l('File "language.xml" not valid for language iso "%s"', $iso));
+                throw new PrestashopInstallerException($this->translator->trans('File "language.xml" not valid for language iso "%iso%"', array('%iso%' => $iso), 'Install'));
             }
 
             $params_lang = array(
@@ -422,6 +456,7 @@ class InstallModelInstall extends InstallAbstractModel
                 'iso_code' => substr((string)$xml->language_code, 0, 2),
                 'allow_accented_chars_url' => (string)$xml->allow_accented_chars_url,
                 'language_code' => (string)$xml->language_code,
+                'locale' => (string)$xml->locale,
             );
 
             if (InstallSession::getInstance()->safe_mode) {
@@ -431,7 +466,7 @@ class InstallModelInstall extends InstallAbstractModel
                     $language = Language::downloadLanguagePack($iso, _PS_INSTALL_VERSION_);
 
                     if ($language == false) {
-                        throw new PrestashopInstallerException($this->language->l('Cannot download language pack "%s"', $iso));
+                        throw new PrestashopInstallerException($this->translator->trans('Cannot download language pack "%iso%"', array('%iso%' => $iso), 'Install'));
                     }
                 }
 
@@ -443,7 +478,7 @@ class InstallModelInstall extends InstallAbstractModel
             Tools::clearCache();
 
             if (!$id_lang = Language::getIdByIso($iso, true)) {
-                throw new PrestashopInstallerException($this->language->l('Cannot install language "%s"', ($xml->name) ? $xml->name : $iso));
+                throw new PrestashopInstallerException($this->translator->trans('Cannot install language "%iso%"', array('%iso%' => ($xml->name ? $xml->name : $iso) ), 'Install'));
             }
 
             $languages[$id_lang] = $iso;
@@ -451,7 +486,7 @@ class InstallModelInstall extends InstallAbstractModel
             // Copy language flag
             if (is_writable(_PS_IMG_DIR_.'l/')) {
                 if (!copy(_PS_INSTALL_LANGS_PATH_.$iso.'/flag.jpg', _PS_IMG_DIR_.'l/'.$id_lang.'.jpg')) {
-                    throw new PrestashopInstallerException($this->language->l('Cannot copy flag language "%s"', _PS_INSTALL_LANGS_PATH_.$iso.'/flag.jpg => '._PS_IMG_DIR_.'l/'.$id_lang.'.jpg'));
+                    throw new PrestashopInstallerException($this->translator->trans('Cannot copy flag language "%flag%"', array('%flag%' => _PS_INSTALL_LANGS_PATH_.$iso.'/flag.jpg => '._PS_IMG_DIR_.'l/'.$id_lang.'.jpg')));
                 }
             }
         }
@@ -497,8 +532,8 @@ class InstallModelInstall extends InstallAbstractModel
     public function getLocalizationPackContent($version, $country)
     {
         if (InstallModelInstall::$_cache_localization_pack_content === null || array_key_exists($country, InstallModelInstall::$_cache_localization_pack_content)) {
-            $localizationCacheWarmer = new LocalizationCacheWarmer($version, $country);
-            $localization_file_content  = $localizationCacheWarmer->warmUp(_PS_CACHE_DIR_.'sandbox'.DIRECTORY_SEPARATOR);
+            $localizationWarmer = new LocalizationWarmer($version, $country);
+            $localization_file_content  = $localizationWarmer->warmUp(_PS_CACHE_DIR_.'sandbox'.DIRECTORY_SEPARATOR);
 
             InstallModelInstall::$_cache_localization_pack_content[$country] = $localization_file_content;
         }
@@ -640,11 +675,11 @@ class InstallModelInstall extends InstallAbstractModel
             $employee->id_lang = Configuration::get('PS_LANG_DEFAULT');
             $employee->bo_menu = 1;
             if (!$employee->add()) {
-                $this->setError($this->language->l('Cannot create admin account'));
+                $this->setError($this->translator->trans('Cannot create admin account', array(), 'Install'));
                 return false;
             }
         } else {
-            $this->setError($this->language->l('Cannot create admin account'));
+            $this->setError($this->translator->trans('Cannot create admin account', array(), 'Install'));
             return false;
         }
 
@@ -677,22 +712,6 @@ class InstallModelInstall extends InstallAbstractModel
             }
         } else {
             $modules = array(
-                'bankwire',
-                // 'blockbestsellers',
-                'blockcart',
-                'ps_categorytree',
-                'blockcurrencies',
-                // 'blockfacebook',
-                'blocklanguages',
-                'blocklayered',
-                // 'blockmanufacturer',
-                'blockmyaccount',
-                'blocknewproducts',
-                'blocksearch',
-                // 'blockspecials',
-                // 'blocksupplier',
-                // 'blockviewed',
-                'cheque',
                 'dashactivity',
                 'dashtrends',
                 'dashgoals',
@@ -700,16 +719,25 @@ class InstallModelInstall extends InstallAbstractModel
                 'graphnvd3',
                 'gridhtml',
                 'ps_banner',
+                'ps_categorytree',
+                'ps_checkpayment',
                 'ps_contactinfo',
+                'ps_currencyselector',
+                'ps_customeraccountlinks',
                 'ps_customersignin',
                 'ps_customtext',
                 'ps_emailsubscription',
+                'ps_facetedsearch',
                 'ps_featuredproducts',
                 'ps_imageslider',
+                'ps_languageselector',
                 'ps_linklist',
                 'ps_mainmenu',
+                'ps_searchbar',
                 'ps_sharebuttons',
+                'ps_shoppingcart',
                 'ps_socialfollow',
+                'ps_wirepayment',
                 'pagesnotfound',
                 'sekeywords',
                 'statsbestcategories',
@@ -744,12 +772,54 @@ class InstallModelInstall extends InstallAbstractModel
         /**
          * TODO: Remove blacklist once 1.7 is out.
          */
-        $blacklist = [
-            'productcomments',
+        $blacklist = array(
+            'bankwire',
+            'blockadvertising',
+            'blockbanner',
+            'blockbestsellers',
+            'blockcart',
+            'blockcategories',
+            'blockcms',
+            'blockcmsinfo',
+            'blockcontact',
+            'blockcontactinfos',
+            'blockcurrencies',
+            'blockcustomerprivacy',
+            'blockfacebook',
+            'blocklanguages',
+            'blocklayered',
+            'blocklink',
+            'blockmanufacturer',
+            'blockmyaccount',
+            'blockmyaccountfooter',
+            'blocknewproducts',
+            'blocknewsletter',
+            'blockpaymentlogo',
+            'blockpermanentlinks',
+            'blockrss',
+            'blocksearch',
+            'blocksharefb',
+            'blocksocial',
+            'blockstore',
+            'blockspecials',
+            'blocksupplier',
+            'blocktags',
+            'blocktopmenu',
+            'blockuserinfo',
+            'blockviewed',
             'blockwishlist',
+            'cheque',
+            'crossselling',
+            'homefeatured',
+            'homeslider',
+            'onboarding',
+            'productscategory',
+            'productcomments',
+            'producttooltip',
             'sendtoafriend',
-            'onboarding'
-        ];
+            'socialsharing',
+        );
+
         $addons_modules = array();
         $content = Tools::addonsRequest('install-modules', $params);
         $xml = @simplexml_load_string($content, null, LIBXML_NOCDATA);
@@ -813,7 +883,7 @@ class InstallModelInstall extends InstallAbstractModel
             if (!$moduleManager->install($module_name)) {
                 /*$module_errors = $module->getErrors();
                 if (empty($module_errors)) {*/
-                $module_errors = [$this->language->l('Cannot install module "%s"', $module_name)];
+                $module_errors = [$this->translator->trans('Cannot install module "%module%"', array('%module%' => $module_name), 'Install')];
                 /*}*/
                 $errors[$module_name] = $module_errors;
             }
@@ -867,13 +937,13 @@ class InstallModelInstall extends InstallAbstractModel
             require_once $fixtures_path.'/install.php';
             $class = 'InstallFixtures'.Tools::toCamelCase($fixtures_name);
             if (!class_exists($class, false)) {
-                $this->setError($this->language->l('Fixtures class "%s" not found', $class));
+                $this->setError($this->translator->trans('Fixtures class "%class%" not found', array('%class%' => $class), 'Install'));
                 return false;
             }
 
             $xml_loader = new $class();
             if (!$xml_loader instanceof InstallXmlLoader) {
-                $this->setError($this->language->l('"%s" must be an instance of "InstallXmlLoader"', $class));
+                $this->setError($this->translator->trans('"%class%" must be an instance of "InstallXmlLoader"', array('%class%' => $class), 'Install'));
                 return false;
             }
         } else {
@@ -915,8 +985,9 @@ class InstallModelInstall extends InstallAbstractModel
         return true;
     }
 
-    public function installTheme()
+    public function installTheme($themeName = null)
     {
+        $themeName = $themeName ?: _THEME_NAME_;
         $builder = new ThemeManagerBuilder(
             Context::getContext(),
             Db::getInstance()
@@ -924,6 +995,6 @@ class InstallModelInstall extends InstallAbstractModel
 
         $theme_manager = $builder->build();
 
-        return $theme_manager->install(_THEME_NAME_) && $theme_manager->enable(_THEME_NAME_);
+        return $theme_manager->install($themeName) && $theme_manager->enable($themeName);
     }
 }

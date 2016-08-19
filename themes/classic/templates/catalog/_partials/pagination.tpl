@@ -1,6 +1,6 @@
 <nav class="pagination">
   <div class="col-md-4">
-    {l s='Showing %s-%s of %s item(s)' sprintf=[$pagination.items_shown_from ,$pagination.items_shown_to, $pagination.total_items]}
+    {l s='Showing %from%-%to% of %total% item(s)' d='Shop.Theme.Catalog' sprintf=['%from%' => $pagination.items_shown_from ,'%to%' => $pagination.items_shown_to, '%total%' => $pagination.total_items]}
   </div>
   <div class="col-md-6">
     <ul class="page-list clearfix text-xs-center">
@@ -15,9 +15,9 @@
               class="{if $page.type === 'previous'}previous {elseif $page.type === 'next'}next {/if}{['disabled' => !$page.clickable, 'js-search-link' => true]|classnames}"
             >
               {if $page.type === 'previous'}
-                {l s='Previous'}
+                <i class="material-icons">&#xE314;</i>{l s='Previous' d='Shop.Theme.Actions'}
               {elseif $page.type === 'next'}
-                {l s='Next'}
+                {l s='Next' d='Shop.Theme.Actions'}<i class="material-icons">&#xE315;</i>
               {else}
                 {$page.page}
               {/if}

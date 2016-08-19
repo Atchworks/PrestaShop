@@ -32,6 +32,11 @@ class AdminSearchControllerCore extends AdminController
         parent::__construct();
     }
 
+    public function getTabSlug()
+    {
+        return 'ROLE_MOD_TAB_ADMINSEARCHCONF_';
+    }
+
     public function postProcess()
     {
         $this->context = Context::getContext();
@@ -107,7 +112,7 @@ class AdminSearchControllerCore extends AdminController
                             $this->_list['orders'][] = $row;
                         }
                     } elseif ($searchType == 3) {
-                        $this->errors[] = Tools::displayError('No order was found with this ID:').' '.Tools::htmlentitiesUTF8($this->query);
+                        $this->errors[] = $this->trans('No order was found with this ID:', array(), 'Admin.OrdersCustomers.Notification').' '.Tools::htmlentitiesUTF8($this->query);
                     }
                 }
             }
@@ -117,7 +122,7 @@ class AdminSearchControllerCore extends AdminController
                 if (Validate::isOrderInvoiceNumber($this->query) && ($invoice = OrderInvoice::getInvoiceByNumber($this->query))) {
                     Tools::redirectAdmin($this->context->link->getAdminLink('AdminPdf').'&submitAction=generateInvoicePDF&id_order='.(int)($invoice->id_order));
                 }
-                $this->errors[] = Tools::displayError('No invoice was found with this ID:').' '.Tools::htmlentitiesUTF8($this->query);
+                $this->errors[] = $this->trans('No invoice was found with this ID:', array(), 'Admin.OrdersCustomers.Notification').' '.Tools::htmlentitiesUTF8($this->query);
             }
 
             /* Cart */
@@ -125,7 +130,7 @@ class AdminSearchControllerCore extends AdminController
                 if ((int)$this->query && Validate::isUnsignedInt((int)$this->query) && ($cart = new Cart($this->query)) && Validate::isLoadedObject($cart)) {
                     Tools::redirectAdmin('index.php?tab=AdminCarts&id_cart='.(int)($cart->id).'&viewcart'.'&token='.Tools::getAdminToken('AdminCarts'.(int)(Tab::getIdFromClassName('AdminCarts')).(int)$this->context->employee->id));
                 }
-                $this->errors[] = Tools::displayError('No cart was found with this ID:').' '.Tools::htmlentitiesUTF8($this->query);
+                $this->errors[] = $this->trans('No cart was found with this ID:', array(), 'Admin.OrdersCustomers.Notification').' '.Tools::htmlentitiesUTF8($this->query);
             }
             /* IP */
             // 6 - but it is included in the customer block
@@ -148,7 +153,7 @@ class AdminSearchControllerCore extends AdminController
     public function searchIP()
     {
         if (!ip2long(trim($this->query))) {
-            $this->errors[] = Tools::displayError('This is not a valid IP address:').' '.Tools::htmlentitiesUTF8($this->query);
+            $this->errors[] = $this->trans('This is not a valid IP address:', array(), 'Admin.Parameters.Notification').' '.Tools::htmlentitiesUTF8($this->query);
             return;
         }
         $this->_list['customers'] = Customer::searchByIp($this->query);
@@ -221,14 +226,13 @@ class AdminSearchControllerCore extends AdminController
 		SELECT class_name, name
 		FROM '._DB_PREFIX_.'tab t
 		INNER JOIN '._DB_PREFIX_.'tab_lang tl ON (t.id_tab = tl.id_tab AND tl.id_lang = '.(int)$this->context->employee->id_lang.')
-		LEFT JOIN '._DB_PREFIX_.'access a ON (a.id_tab = t.id_tab AND a.id_profile = '.(int)$this->context->employee->id_profile.')
-		WHERE active = 1
-		'.($this->context->employee->id_profile != 1 ? 'AND view = 1' : '').
-        (defined('_PS_HOST_MODE_') ? ' AND t.`hide_host_mode` = 0' : '')
+		WHERE active = 1'.(defined('_PS_HOST_MODE_') ? ' AND t.`hide_host_mode` = 0' : '')
         );
         foreach ($result as $row) {
-            $tabs[strtolower($row['class_name'])] = $row['name'];
-            $key_match[strtolower($row['class_name'])] = $row['class_name'];
+            if (Access::isGranted('ROLE_MOD_TAB_'.strtoupper($row['class_name']).'_READ', $this->context->employee->id_profile)) {
+                $tabs[strtolower($row['class_name'])] = $row['name'];
+                $key_match[strtolower($row['class_name'])] = $row['class_name'];
+            }
         }
         foreach (AdminTab::$tabParenting as $key => $value) {
             $value = stripslashes($value);
@@ -262,9 +266,9 @@ class AdminSearchControllerCore extends AdminController
     protected function initOrderList()
     {
         $this->fields_list['orders'] = array(
-            'reference' => array('title' => $this->l('Reference'), 'align' => 'center', 'width' => 65),
-            'id_order' => array('title' => $this->l('ID'), 'align' => 'center', 'width' => 25),
-            'customer' => array('title' => $this->l('Customer')),
+            'reference' => array('title' => $this->trans('Reference', array(), 'Admin.Global'), 'align' => 'center', 'width' => 65),
+            'id_order' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'width' => 25),
+            'customer' => array('title' => $this->trans('Customer', array(), 'Admin.Global')),
             'total_paid_tax_incl' => array('title' => $this->l('Total'), 'width' => 70, 'align' => 'right', 'type' => 'price', 'currency' => true),
             'payment' => array( 'title' => $this->l('Payment'), 'width' => 100),
             'osname' => array('title' => $this->l('Status'), 'width' => 280),
@@ -282,15 +286,15 @@ class AdminSearchControllerCore extends AdminController
             $genders[$gender->id] = $gender->name;
         }
         $this->fields_list['customers'] = (array(
-            'id_customer' => array('title' => $this->l('ID'), 'align' => 'center', 'width' => 25),
+            'id_customer' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'width' => 25),
             'id_gender' => array('title' => $this->l('Social title'), 'align' => 'center', 'icon' => $genders_icon, 'list' => $genders, 'width' => 25),
             'firstname' => array('title' => $this->l('First Name'), 'align' => 'left', 'width' => 150),
-            'lastname' => array('title' => $this->l('Name'), 'align' => 'left', 'width' => 'auto'),
+            'lastname' => array('title' => $this->trans('Name', array(), 'Admin.Global'), 'align' => 'left', 'width' => 'auto'),
             'email' => array('title' => $this->l('Email address'), 'align' => 'left', 'width' => 250),
             'birthday' => array('title' => $this->l('Birth date'), 'align' => 'center', 'type' => 'date', 'width' => 75),
             'date_add' => array('title' => $this->l('Registration date'), 'align' => 'center', 'type' => 'date', 'width' => 75),
             'orders' => array('title' => $this->l('Orders'), 'align' => 'center', 'width' => 50),
-            'active' => array('title' => $this->l('Enabled'), 'align' => 'center', 'active' => 'status', 'type' => 'bool', 'width' => 25),
+            'active' => array('title' => $this->trans('Enabled', array(), 'Admin.Global'), 'align' => 'center', 'active' => 'status', 'type' => 'bool', 'width' => 25),
         ));
     }
 
@@ -298,10 +302,10 @@ class AdminSearchControllerCore extends AdminController
     {
         $this->show_toolbar = false;
         $this->fields_list['products'] = array(
-            'id_product' => array('title' => $this->l('ID'), 'width' => 25),
-            'manufacturer_name' => array('title' => $this->l('Manufacturer'), 'align' => 'center', 'width' => 200),
-            'reference' => array('title' => $this->l('Reference'), 'align' => 'center', 'width' => 150),
-            'name' => array('title' => $this->l('Name'), 'width' => 'auto'),
+            'id_product' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'width' => 25),
+            'manufacturer_name' => array('title' => $this->l('Brand'), 'align' => 'center', 'width' => 200),
+            'reference' => array('title' => $this->trans('Reference', array(), 'Admin.Global'), 'align' => 'center', 'width' => 150),
+            'name' => array('title' => $this->trans('Name', array(), 'Admin.Global'), 'width' => 'auto'),
             'price_tax_excl' => array('title' => $this->l('Price (tax excl.)'), 'align' => 'right', 'type' => 'price', 'width' => 60),
             'price_tax_incl' => array('title' => $this->l('Price (tax incl.)'), 'align' => 'right', 'type' => 'price', 'width' => 60),
             'active' => array('title' => $this->l('Active'), 'width' => 70, 'active' => 'status', 'align' => 'center', 'type' => 'bool')

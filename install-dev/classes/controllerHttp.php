@@ -24,13 +24,21 @@
  * International Registered Trademark & Property of PrestaShop SA
  */
 
-abstract class InstallControllerHttp
+class InstallControllerHttp
 {
     /**
-     * @var array List of installer steps
+     * @var StepList List of installer steps
      */
-    protected static $steps = array('welcome', 'license', 'system', 'configure', 'database', 'process');
+    protected static $steps;
+
+    /**
+     * @var string
+     */
     protected $phone;
+
+    /**
+     * @var array
+     */
     protected static $instances = array();
 
     /**
@@ -51,9 +59,14 @@ abstract class InstallControllerHttp
     public $session;
 
     /**
-     * @var InstallLanguages
+     * LanguageList
      */
     public $language;
+
+    /**
+     * @var \Symfony\Component\Translation\Translator
+     */
+    public $translator;
 
     /**
      * @var bool If false, disable next button access
@@ -75,23 +88,84 @@ abstract class InstallControllerHttp
      */
     protected $__vars = array();
 
-    /**
-     * Process form to go to next step
-     */
-    abstract public function processNextStep();
+    private function initSteps()
+    {
+        $stepConfig = array(
+            array(
+                'name' => 'welcome',
+                'displayName' => $this->translator->trans('Choose your language', array(), 'Install'),
+                'controllerClass' => 'InstallControllerHttpWelcome'
+            ),
+            array(
+                'name' => 'license',
+                'displayName' => $this->translator->trans('License agreements', array(), 'Install'),
+                'controllerClass' => 'InstallControllerHttpLicense'
+            ),
+            array(
+                'name' => 'system',
+                'displayName' => $this->translator->trans('System compatibility', array(), 'Install'),
+                'controllerClass' => 'InstallControllerHttpSystem'
+            ),
+            array(
+                'name' => 'configure',
+                'displayName' => $this->translator->trans('Store information', array(), 'Install'),
+                'controllerClass' => 'InstallControllerHttpConfigure'
+            ),
+            array(
+                'name' => 'database',
+                'displayName' => $this->translator->trans('System configuration', array(), 'Install'),
+                'controllerClass' => 'InstallControllerHttpDatabase'
+            ),
+            array(
+                'name' => 'process',
+                'displayName' => $this->translator->trans('Store installation', array(), 'Install'),
+                'controllerClass' => 'InstallControllerHttpProcess'
+            ),
+        );
+        self::$steps = new StepList($stepConfig);
+    }
 
-    /**
-     * Validate current step
-     */
-    abstract public function validate();
+    public function __construct()
+    {
+        $this->session = InstallSession::getInstance();
 
-    /**
-     * Display current step view
-     */
-    abstract public function display();
+        // Set current language
+        $this->language = LanguageList::getInstance();
+        $detect_language = $this->language->detectLanguage();
+
+        Context::getContext()->language =  $this->language;
+
+        $this->translator = Context::getContext()->getTranslator();
+
+        if (isset($this->session->lang)) {
+            $lang = $this->session->lang;
+        } else {
+            $lang = (isset($detect_language['primarytag'])) ? $detect_language['primarytag'] : false;
+        }
+
+        if (!in_array($lang, $this->language->getIsoList())) {
+            $lang = 'en';
+        }
+        $this->language->setLanguage($lang);
+
+        if (empty(self::$steps)) {
+            $this->initSteps();
+        }
+
+        $this->init();
+    }
+
+    public function setCurrentStep($step)
+    {
+        $this->step = $step;
+
+        return $this;
+    }
 
     final public static function execute()
     {
+        $self = new self();
+
         if (Tools::getValue('compile_templates')) {
             require_once(_PS_INSTALL_CONTROLLERS_PATH_.'http/smarty_compile.php');
             exit;
@@ -102,19 +176,8 @@ abstract class InstallControllerHttp
             Tools::generateIndex();
         }
 
-        // Include all controllers
-        foreach (self::$steps as $step) {
-            if (!file_exists(_PS_INSTALL_CONTROLLERS_PATH_.'http/'.$step.'.php')) {
-                throw new PrestashopInstallerException("Controller file 'http/{$step}.php' not found");
-            }
-
-            require_once _PS_INSTALL_CONTROLLERS_PATH_.'http/'.$step.'.php';
-            $classname = 'InstallControllerHttp'.$step;
-            self::$instances[$step] = new $classname($step);
-        }
-
-        if (!$session->last_step || !in_array($session->last_step, self::$steps)) {
-            $session->last_step = self::$steps[0];
+        if (empty($session->last_step)) {
+            $session->last_step = self::$steps->current()->getName();
         }
 
         // Set timezone
@@ -139,80 +202,56 @@ abstract class InstallControllerHttp
 
         // Get current step (check first if step is changed, then take it from session)
         if (Tools::getValue('step')) {
-            $current_step = Tools::getValue('step');
-            $session->step = $current_step;
-        } else {
-            $current_step = (isset($session->step)) ? $session->step : self::$steps[0];
-        }
-
-        if (!in_array($current_step, self::$steps)) {
-            $current_step = self::$steps[0];
+            self::$steps->setOffsetFromStepName(Tools::getValue('step'));
+            $session->step = self::$steps->current()->getName();
+        } elseif (!empty($session->step)) {
+            self::$steps->setOffsetFromStepName($session->step);
         }
 
         // Validate all steps until current step. If a step is not valid, use it as current step.
-        foreach (self::$steps as $check_step) {
+        foreach (self::$steps as $key => $check_step) {
             // Do not validate current step
-            if ($check_step == $current_step) {
+
+            if (self::$steps->current() == $check_step) {
                 break;
             }
 
-            if (!self::$instances[$check_step]->validate()) {
-                $current_step = $check_step;
-                $session->step = $current_step;
-                $session->last_step = $current_step;
+            if (!$check_step->getControllerInstance()->validate()) {
+                self::$steps->setOffset($key);
+                $session->step = $session->last_step = self::$steps->current()->getName();
                 break;
             }
         }
 
         // Submit form to go to next step
         if (Tools::getValue('submitNext')) {
-            self::$instances[$current_step]->processNextStep();
+
+            self::$steps->current()->getControllerInstance()->processNextStep();
 
             // If current step is validated, let's go to next step
-            if (self::$instances[$current_step]->validate()) {
-                $current_step = self::$instances[$current_step]->findNextStep();
+            if (self::$steps->current()->getControllerInstance()->validate()) {
+                self::$steps->next();
             }
-            $session->step = $current_step;
+            $session->step = self::$steps->current()->getName();
 
             // Change last step
-            if (self::getStepOffset($current_step) > self::getStepOffset($session->last_step)) {
-                $session->last_step = $current_step;
+            if (self::$steps->getOffset() > self::getStepOffset($session->last_step)) {
+                $session->last_step = self::$steps->current()->getName();
             }
         }
         // Go to previous step
-        elseif (Tools::getValue('submitPrevious') && $current_step != self::$steps[0]) {
-            $current_step = self::$instances[$current_step]->findPreviousStep($current_step);
-            $session->step = $current_step;
+        elseif (Tools::getValue('submitPrevious') && 0 !== self::$steps->getOffset()) {
+            self::$steps->previous();
+            $session->step = self::$steps->current()->getName();
         }
 
-        self::$instances[$current_step]->process();
-        self::$instances[$current_step]->display();
-    }
-
-    final public function __construct($step)
-    {
-        $this->step = $step;
-        $this->session = InstallSession::getInstance();
-
-        // Set current language
-        $this->language = InstallLanguages::getInstance();
-        $detect_language = $this->language->detectLanguage();
-        if (isset($this->session->lang)) {
-            $lang = $this->session->lang;
-        } else {
-            $lang = (isset($detect_language['primarytag'])) ? $detect_language['primarytag'] : false;
-        }
-
-        if (!in_array($lang, $this->language->getIsoList())) {
-            $lang = 'en';
-        }
-        $this->language->setLanguage($lang);
-
-        $this->init();
+        self::$steps->current()->getControllerInstance()->process();
+        self::$steps->current()->getControllerInstance()->display();
     }
 
     public function init()
     {
+
     }
 
     public function process()
@@ -242,12 +281,7 @@ abstract class InstallControllerHttp
      */
     public static function getStepOffset($step)
     {
-        static $flip = null;
-
-        if (is_null($flip)) {
-            $flip = array_flip(self::$steps);
-        }
-        return $flip[$step];
+        return self::$steps->getOffsetFromStepName($step);
     }
 
     /**
@@ -262,50 +296,13 @@ abstract class InstallControllerHttp
     }
 
     /**
-     * Get translated string
-     *
-     * @param string $str String to translate
-     * @param ... All other params will be used with sprintf
-     * @return string
-     */
-    public function l($str)
-    {
-        $args = func_get_args();
-        return call_user_func_array(array($this->language, 'l'), $args);
-    }
-
-    /**
-     * Find previous step
-     *
-     * @param string $step
-     */
-    public function findPreviousStep()
-    {
-        return (isset(self::$steps[$this->getStepOffset($this->step) - 1])) ? self::$steps[$this->getStepOffset($this->step) - 1] : false;
-    }
-
-    /**
-     * Find next step
-     *
-     * @param string $step
-     */
-    public function findNextStep()
-    {
-        $nextStep = (isset(self::$steps[$this->getStepOffset($this->step) + 1])) ? self::$steps[$this->getStepOffset($this->step) + 1] : false;
-        if ($nextStep == 'system' && self::$instances[$nextStep]->validate()) {
-            $nextStep = self::$instances[$nextStep]->findNextStep();
-        }
-        return $nextStep;
-    }
-
-    /**
      * Check if current step is first step in list of steps
      *
      * @return bool
      */
     public function isFirstStep()
     {
-        return self::getStepOffset($this->step) == 0;
+        return self::$steps->isFirstStep();
     }
 
     /**
@@ -315,7 +312,7 @@ abstract class InstallControllerHttp
      */
     public function isLastStep()
     {
-        return self::getStepOffset($this->step) == (count(self::$steps) - 1);
+        return self::$steps->isLastStep();
     }
 
     /**
@@ -326,7 +323,7 @@ abstract class InstallControllerHttp
      */
     public function isStepFinished($step)
     {
-        return self::getStepOffset($step) < self::getStepOffset($this->getLastStep());
+        return self::getStepOffset($step) < self::$steps->getOffset();
     }
 
     /**
@@ -447,15 +444,15 @@ abstract class InstallControllerHttp
             $path = _PS_INSTALL_PATH_.'theme/views/';
         }
 
-        if (!file_exists($path.$template.'.phtml')) {
-            throw new PrestashopInstallerException("Template '{$template}.phtml' not found");
+        if (!file_exists($path.$template.'.php')) {
+            throw new PrestashopInstallerException("Template '{$template}.php' not found");
         }
 
         if ($get_output) {
             ob_start();
         }
 
-        include($path.$template.'.phtml');
+        include($path.$template.'.php');
 
         if ($get_output) {
             $content = ob_get_contents();

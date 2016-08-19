@@ -24,10 +24,10 @@
  * International Registered Trademark & Property of PrestaShop SA
  */
 
-use Symfony\Component\Yaml\Yaml;
 use PrestaShop\PrestaShop\Adapter\ServiceLocator;
 use PrestaShop\PrestaShop\Core\ContainerBuilder;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerAggregate;
+use Symfony\Component\Yaml\Yaml;
 
 $container_builder = new ContainerBuilder();
 $container = $container_builder->build();
@@ -36,24 +36,48 @@ ServiceLocator::setServiceContainerInstance($container);
 if (!file_exists(_PS_CACHE_DIR_)) {
     @mkdir(_PS_CACHE_DIR_);
     $warmer = new CacheWarmerAggregate([
-        new PrestaShopBundle\CacheWarmer\LocalizationCacheWarmer(_PS_VERSION_, 'en') //@replace hard-coded Lang
+        new PrestaShopBundle\Cache\LocalizationWarmer(_PS_VERSION_, 'en') //@replace hard-coded Lang
     ]);
     $warmer->warmUp(_PS_CACHE_DIR_);
 }
 
-$fmtParamYml = (int)@filemtime(__DIR__. '/../app/config/parameters.yml');
+$configDirectory = __DIR__. '/../app/config';
+$phpParametersFilepath = $configDirectory . '/parameters.php';
+$yamlParametersFilepath = $configDirectory . '/parameters.yml';
 
-if ($fmtParamYml) {
-    $fmtAppParamPhp = (int)@filemtime(_PS_CACHE_DIR_. 'appParameters.php');
-    // If the parameters.ypl file has been updated, let's update its cache
-    if (!$fmtAppParamPhp || $fmtAppParamPhp < $fmtParamYml) {
-        $config = Yaml::parse(file_get_contents(__DIR__. '/../app/config/parameters.yml'));
-        file_put_contents(_PS_CACHE_DIR_ .'appParameters.php', '<?php return ' . var_export($config, true). ';');
+function exportPhpConfigFile($config, $destination) {
+    return file_put_contents($destination, '<?php return ' . var_export($config, true). ';' . "\n");
+}
+
+// Bootstrap an application with parameters.yml, which has been installed before PHP parameters file support
+if (!file_exists($phpParametersFilepath) && file_exists($yamlParametersFilepath)) {
+    $parameters = Yaml::parse($yamlParametersFilepath);
+    if (exportPhpConfigFile($parameters, $phpParametersFilepath)) {
+        file_put_contents($yamlParametersFilepath, 'parameters:' . "\n");
+    }
+}
+
+$lastParametersModificationTime = (int)@filemtime($phpParametersFilepath);
+
+if ($lastParametersModificationTime) {
+    $lastParametersCacheModificationTime = (int)@filemtime(_PS_CACHE_DIR_. 'appParameters.php');
+    if (!$lastParametersCacheModificationTime || $lastParametersCacheModificationTime < $lastParametersModificationTime) {
+        // When parameters file is available, update its cache if it is stale.
+        if (file_exists($phpParametersFilepath)) {
+            $config = require($phpParametersFilepath);
+            exportPhpConfigFile($config, _PS_CACHE_DIR_ .'appParameters.php');
+        }
     }
 
     $config = require_once _PS_CACHE_DIR_ .'appParameters.php';
 
-    define('_DB_SERVER_', $config['parameters']['database_host']);
+    $database_host = $config['parameters']['database_host'];
+
+    if (!empty($config['parameters']['database_port'])) {
+        $database_host .= ':'. $config['parameters']['database_port'];
+    }
+
+    define('_DB_SERVER_', $database_host);
     define('_DB_NAME_', $config['parameters']['database_name']);
     define('_DB_USER_', $config['parameters']['database_user']);
     define('_DB_PASSWD_', $config['parameters']['database_password']);

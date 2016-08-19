@@ -40,6 +40,12 @@ if (!defined('_PS_CORE_DIR_')) {
     define('_PS_CORE_DIR_', realpath(dirname(__FILE__).'/..'));
 }
 
+/* in dev mode - check if composer was executed */
+if ((!is_dir(_PS_CORE_DIR_.DIRECTORY_SEPARATOR.'vendor') ||
+    !file_exists(_PS_CORE_DIR_.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php'))) {
+    die('Error : please install <a href="https://getcomposer.org/">composer</a>. Then run "php composer.phar install"');
+}
+
 $themes = glob(dirname(dirname(__FILE__)).'/themes/*/config/theme.yml');
 usort($themes, function ($a, $b) {
     return strcmp($b, $a);
@@ -50,7 +56,9 @@ if (!defined('_THEME_NAME_')) {
 
 require_once _PS_CORE_DIR_.'/config/defines.inc.php';
 require_once _PS_CORE_DIR_.'/config/autoload.php';
-require_once _PS_CORE_DIR_.'/config/bootstrap.php';
+if (file_exists(_PS_CORE_DIR_.'/app/config/parameters.php')) {
+    require_once _PS_CORE_DIR_.'/config/bootstrap.php';
+}
 require_once _PS_CORE_DIR_.'/config/defines_uri.inc.php';
 
 // Generate common constants
@@ -69,7 +77,6 @@ require_once _PS_INSTALL_PATH_.'install_version.php';
 
 require_once _PS_CORE_DIR_.'/config/alias.php';
 require_once _PS_INSTALL_PATH_.'classes/exception.php';
-require_once _PS_INSTALL_PATH_.'classes/languages.php';
 require_once _PS_INSTALL_PATH_.'classes/language.php';
 require_once _PS_INSTALL_PATH_.'classes/model.php';
 require_once _PS_INSTALL_PATH_.'classes/session.php';

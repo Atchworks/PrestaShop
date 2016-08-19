@@ -34,7 +34,7 @@
 		<div class="panel">
 			<h3>
 				<i class="icon-upload"></i>
-				{l s='Import'}
+				{l s='Import' d='Admin.Actions'}
 			</h3>
 			<div class="alert alert-info">
 				<ul class="list-unstyled">
@@ -86,7 +86,7 @@
 						<p class="help-block">
 							{l s='Allowed formats: .csv, .xls, .xlsx, .xlst, .ods, .ots'}.<br/>
 							{l s='Only UTF-8 and ISO 8859-1 encodings are allowed'}.<br/>
-							{l s='You can also upload your file via FTP to the following directory: %s .' sprintf=$path_import}
+							{l s='You can also upload your file via FTP to the following directory: %s .' sprintf=[$path_import]}
 						</p>
 					</div>
 					<div class="alert alert-danger" id="file-errors" style="display:none"></div>
@@ -123,7 +123,7 @@
 											<li>
 												<a class="csv-delete-link" href="#">
 													<i class="icon-trash"></i>
-													{l s='Delete'}
+													{l s='Delete' d='Admin.Actions'}
 												</a>
 											</li>
 										</ul>
@@ -155,7 +155,7 @@
 											<li>
 												<a href="{$current|escape:'html':'UTF-8'}&amp;token={$token|escape:'html':'UTF-8'}&amp;csvfilename={$filename|@urlencode}&amp;delete=1">
 													<i class="icon-trash"></i>
-													{l s='Delete'}
+													{l s='Delete' d='Admin.Actions'}
 												</a>
 											</li>
 										</ul>
@@ -220,8 +220,8 @@
 						<label class="switch-light prestashop-switch fixed-width-lg">
 							<input id="truncate" name="truncate" type="checkbox"/>
 							<span>
-								<span>{l s='Yes'}</span>
-								<span>{l s='No'}</span>
+								<span>{l s='Yes' d='Admin.Global'}</span>
+								<span>{l s='No' d='Admin.Global'}</span>
 							</span>
 							<a class="slide-button btn"></a>
 						</label>
@@ -237,8 +237,8 @@
 						<label class="switch-light prestashop-switch fixed-width-lg">
 							<input id="match_ref" name="match_ref" type="checkbox" />
 							<span>
-								<span>{l s='Yes'}</span>
-								<span>{l s='No'}</span>
+								<span>{l s='Yes' d='Admin.Global'}</span>
+								<span>{l s='No' d='Admin.Global'}</span>
 							</span>
 							<a class="slide-button btn"></a>
 						</label>
@@ -250,8 +250,8 @@
 						<label class="switch-light prestashop-switch fixed-width-lg">
 							<input id="regenerate" name="regenerate" type="checkbox" />
 							<span>
-								<span>{l s='Yes'}</span>
-								<span>{l s='No'}</span>
+								<span>{l s='Yes' d='Admin.Global'}</span>
+								<span>{l s='No' d='Admin.Global'}</span>
 							</span>
 							<a class="slide-button btn"></a>
 						</label>
@@ -267,8 +267,8 @@
 						<label class="switch-light prestashop-switch fixed-width-lg">
 							<input  id="forceIDs" name="forceIDs" type="checkbox"/>
 							<span>
-								<span>{l s='Yes'}</span>
-								<span>{l s='No'}</span>
+								<span>{l s='Yes' d='Admin.Global'}</span>
+								<span>{l s='No' d='Admin.Global'}</span>
 							</span>
 							<a class="slide-button btn"></a>
 						</label>
@@ -283,8 +283,8 @@
 						<label class="switch-light prestashop-switch fixed-width-lg">
 							<input id="sendemail" name="sendemail" type="checkbox" checked="checked" />
 							<span>
-								<span>{l s='Yes'}</span>
-								<span>{l s='No'}</span>
+								<span>{l s='Yes' d='Admin.Global'}</span>
+								<span>{l s='No' d='Admin.Global'}</span>
 							</span>
 							<a class="slide-button btn"></a>
 						</label>
@@ -333,7 +333,7 @@
 					{l s='Sample Addresses file'}
 				</a>
 				<a class="list-group-item _blank" href="../docs/csv_import/manufacturers_import.csv">
-					{l s='Sample Manufacturers file'}
+					{l s='Sample Brands file'}
 				</a>
 				<a class="list-group-item _blank" href="../docs/csv_import/suppliers_import.csv">
 					{l s='Sample Suppliers file'}

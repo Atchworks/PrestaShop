@@ -38,7 +38,7 @@ class AdminGendersControllerCore extends AdminController
         $this->addRowAction('edit');
         $this->addRowAction('delete');
 
-        $this->context = Context::getContext();
+        parent::__construct();
 
         if (!Tools::getValue('realedit')) {
             $this->deleted = false;
@@ -62,7 +62,7 @@ class AdminGendersControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_gender' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs'
             ),
@@ -91,8 +91,6 @@ class AdminGendersControllerCore extends AdminController
                 'search' => false
             )
         );
-
-        parent::__construct();
     }
 
     public function initPageHeaderToolbar()
@@ -172,7 +170,7 @@ class AdminGendersControllerCore extends AdminController
                 )
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             )
         );
 
@@ -199,7 +197,7 @@ class AdminGendersControllerCore extends AdminController
     {
         if (isset($this->fieldImageSettings['name']) && isset($this->fieldImageSettings['dir'])) {
             if (!Validate::isInt(Tools::getValue('img_width')) || !Validate::isInt(Tools::getValue('img_height'))) {
-                $this->errors[] = Tools::displayError('Width and height must be numeric values.');
+                $this->errors[] = $this->trans('Width and height must be numeric values.', array(), 'Admin.Parameters.Notification');
             } else {
                 if ((int)Tools::getValue('img_width') > 0 && (int)Tools::getValue('img_height') > 0) {
                     $width = (int)Tools::getValue('img_width');

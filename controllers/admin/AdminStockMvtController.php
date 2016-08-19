@@ -33,19 +33,20 @@ class AdminStockMvtControllerCore extends AdminController
     public function __construct()
     {
         $this->bootstrap = true;
-        $this->context = Context::getContext();
         $this->table = 'stock_mvt';
         $this->className = 'StockMvt';
         $this->identifier = 'id_stock_mvt';
         $this->lang = false;
         $this->multishop_context = Shop::CONTEXT_ALL;
 
+        parent::__construct();
+
         $this->list_no_link = true;
         $this->displayInformation($this->l('This interface allows you to display the stock movement for a selected warehouse.').'<br />');
 
         $this->fields_list = array(
             'product_reference' => array(
-                'title' => $this->l('Reference'),
+                'title' => $this->trans('Reference', array(), 'Admin.Global'),
                 'havingFilter' => true
             ),
             'product_ean13' => array(
@@ -57,7 +58,7 @@ class AdminStockMvtControllerCore extends AdminController
                 'havingFilter' => true
             ),
             'product_name' => array(
-                'title' => $this->l('Name'),
+                'title' => $this->trans('Name', array(), 'Admin.Global'),
                 'havingFilter' => true
             ),
             'warehouse_name' => array(
@@ -94,7 +95,7 @@ class AdminStockMvtControllerCore extends AdminController
                 'filter_key' => 'a!price_te'
             ),
             'reason' => array(
-                'title' => $this->l('Label'),
+                'title' => $this->trans('Label', array(), 'Admin.Global'),
                 'havingFilter' => true
             ),
             'employee' => array(
@@ -107,8 +108,6 @@ class AdminStockMvtControllerCore extends AdminController
                 'filter_key' => 'a!date_add'
             ),
         );
-
-        parent::__construct();
     }
 
     public function initPageHeaderToolbar()
@@ -312,7 +311,7 @@ class AdminStockMvtControllerCore extends AdminController
             echo sprintf("%s\n", implode(';', array_map(array('CSVCore', 'wrap'), $row_csv)));
         }
     }
-    
+
     public function initContent()
     {
         if (!Configuration::get('PS_ADVANCED_STOCK_MANAGEMENT')) {
@@ -321,7 +320,7 @@ class AdminStockMvtControllerCore extends AdminController
         }
         parent::initContent();
     }
-    
+
     public function initProcess()
     {
         if (!Configuration::get('PS_ADVANCED_STOCK_MANAGEMENT')) {

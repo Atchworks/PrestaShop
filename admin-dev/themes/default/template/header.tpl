@@ -75,7 +75,7 @@
 		var employee_token = '{getAdminToken tab='AdminEmployees'}';
 		var choose_language_translate = '{l s='Choose language' js=1}';
 		var default_language = '{$default_language|intval}';
-		var admin_modules_link = '{$link->getAdminLink("AdminModules")|addslashes}';
+		var admin_modules_link = '{$link->getAdminLink("AdminModulesSf", true, ['route' => "admin_module_catalog_post"])|addslashes}';
 		var tab_modules_list = '{if isset($tab_modules_list) && $tab_modules_list}{$tab_modules_list|addslashes}{/if}';
 		var update_success_msg = '{l s='Update successful' js=1}';
 		var errorLogin = '{l s='PrestaShop was unable to log in to Addons. Please check your credentials and your Internet connection.' js=1}';
@@ -122,7 +122,7 @@
 				{if count($quick_access) >= 0}
 					<ul id="header_quick">
 						<li class="dropdown">
-							<a href="javascript:void(0)" id="quick_select" class="dropdown-toggle" data-toggle="dropdown">{l s='Quick Access'} <i class="icon-caret-down"></i></a>
+							<a href="javascript:void(0)" id="quick_select" class="dropdown-toggle" data-toggle="dropdown">{l s='Quick Access' d='Admin.Navigation.Header'} <i class="icon-caret-down"></i></a>
 							<ul class="dropdown-menu">
 								{foreach $quick_access as $quick}
 									<li {if $link->matchQuickLink({$quick.link})}{assign "matchQuickLink" $quick.id_quick_access}class="active"{/if}>
@@ -231,12 +231,12 @@
 							</li>
 							<li class="text-center text-nowrap">{$employee->firstname} {$employee->lastname}</li>
 							<li class="divider"></li>
-							<li><a href="{$link->getAdminLink('AdminEmployees')|escape:'html':'UTF-8'}&amp;id_employee={$employee->id|intval}&amp;updateemployee"><i class="icon-wrench"></i> {l s='My preferences'}</a></li>
+							<li><a href="{$link->getAdminLink('AdminEmployees')|escape:'html':'UTF-8'}&amp;id_employee={$employee->id|intval}&amp;updateemployee"><i class="icon-wrench"></i> {l s='My preferences' d='Admin.Navigation.Header'}</a></li>
 							{if $host_mode}
-							<li><a href="https://www.prestashop.com/cloud/" class="_blank"><i class="icon-wrench"></i> {l s='My PrestaShop account'}</a></li>
+							<li><a href="https://www.prestashop.com/cloud/" class="_blank"><i class="icon-wrench"></i> {l s='My PrestaShop account' d='Admin.Navigation.Header'}</a></li>
 							{/if}
 							<li class="divider"></li>
-							<li><a id="header_logout" href="{$login_link|escape:'html':'UTF-8'}&amp;logout"><i class="icon-signout"></i> {l s='Sign out'}</a></li>
+							<li><a id="header_logout" href="{$login_link|escape:'html':'UTF-8'}&amp;logout"><i class="icon-signout"></i> {l s='Sign out' d='Admin.Navigation.Header'}</a></li>
 						</ul>
 					</li>
 				</ul>
@@ -302,7 +302,7 @@
                 <span class="shop-state" id="debug-mode">
                   <i class="material-icons">bug_report</i>
                   <span class="label-tooltip" data-toggle="tooltip" data-placement="bottom" data-html="true"
-                    title="<p class='text-left text-nowrap'><strong>{l s='Your shop is in debug mode.'}</strong></p><p class='text-left'>{l s='All PHP errors and messages are displayed, when you are done <strong>turn off</strong> this mode.'}</p>">{l s='Debug mode'}</span>
+                    title="<p class='text-left text-nowrap'><strong>{l s='Your shop is in debug mode.'}</strong></p><p class='text-left'>{l s='All the PHP errors and messages are displayed. When you no longer need it, [1]turn off[/1] this mode.' sprintf=['[1]' => '<strong>', '[/1]' => '</strong>']}</p>">{l s='Debug mode'}</span>
                 </span>
               {/if}
               {if isset($maintenance_mode) && $maintenance_mode == true}

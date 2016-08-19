@@ -37,6 +37,8 @@ class ModuleManagerTest extends \PHPUnit_Framework_TestCase
     private $moduleProviderS; // S means "Stub"
     private $moduleUpdaterS;
     private $moduleRepositoryS;
+    private $moduleZipManagerS;
+    private $translatorS;
     private $employeeS;
 
     public function setUp()
@@ -48,6 +50,8 @@ class ModuleManagerTest extends \PHPUnit_Framework_TestCase
             $this->moduleProviderS,
             $this->moduleUpdaterS,
             $this->moduleRepositoryS,
+            $this->moduleZipManagerS,
+            $this->translatorS,
             $this->employeeS
         );
     }
@@ -62,8 +66,7 @@ class ModuleManagerTest extends \PHPUnit_Framework_TestCase
     public function testInstallSuccessful()
     {
         $this->assertTrue($this->moduleManager->install(self::UNINSTALLED_MODULE));
-        $this->setExpectedException('Exception', sprintf('The module %s is already installed.', self::INSTALLED_MODULE));
-        $this->moduleManager->install(self::INSTALLED_MODULE);
+        $this->assertTrue($this->moduleManager->install(self::INSTALLED_MODULE));
     }
 
     public function testUninstallSuccessful()
@@ -141,6 +144,8 @@ class ModuleManagerTest extends \PHPUnit_Framework_TestCase
         $this->mockModuleProvider();
         $this->mockModuleUpdater();
         $this->mockModuleRepository();
+        $this->mockModuleZipManager();
+        $this->mockTranslator();
         $this->mockEmployee();
     }
 
@@ -271,6 +276,31 @@ class ModuleManagerTest extends \PHPUnit_Framework_TestCase
             ->willReturn($moduleS);
     }
 
+    private function mockModuleZipManager()
+    {
+        $this->moduleZipManagerS = $this->getMockBuilder('PrestaShop\PrestaShop\Adapter\Module\ModuleZipManager')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->moduleZipManagerS
+            ->method('getName')
+            ->will($this->returnArgument(0));
+
+        $this->moduleZipManagerS
+            ->method('storeInModulesFolder');
+    }
+
+    private function mockTranslator()
+    {
+        $this->translatorS = $this->getMockBuilder('Symfony\Component\Translation\Translator')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->translatorS
+            ->method('trans')
+            ->will($this->returnArgument(0));
+    }
+
     private function mockEmployee()
     {
         /* this is a super admin */
@@ -289,6 +319,8 @@ class ModuleManagerTest extends \PHPUnit_Framework_TestCase
         $this->moduleProviderS = null;
         $this->moduleUpdaterS = null;
         $this->moduleUpdaterS = null;
+        $this->moduleZipManagerS = null;
+        $this->translatorS = null;
         $this->employeeS = null;
     }
 }

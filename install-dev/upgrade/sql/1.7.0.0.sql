@@ -43,7 +43,15 @@ CREATE TABLE `PREFIX_module_history` (
   `date_upd` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_employee` (`id_employee`,`id_module`)
+) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8;
+
+CREATE TABLE `PREFIX_module_carrier` (
+  `id_module`INT(10) unsigned NOT NULL,
+  `id_shop`INT(11) unsigned NOT NULL DEFAULT '1',
+  `id_reference` INT(11) NOT NULL,
+  PRIMARY KEY (`id_module`,`id_shop`, `id_reference`)
 ) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8 COLLATION;
+/* PHP:select_current_payment_modules(); */;
 
 
 ALTER TABLE `PREFIX_product` ADD `show_condition` TINYINT(1) NOT NULL DEFAULT '0' AFTER `available_date`;
@@ -109,3 +117,42 @@ ALTER TABLE `PREFIX_cart_product` DROP PRIMARY KEY, ADD PRIMARY KEY (`id_cart`, 
 ALTER TABLE `PREFIX_order_detail` ADD `id_customization` INT(10) NULL DEFAULT '0' AFTER `product_attribute_id`;
 ALTER TABLE `PREFIX_customized_data` ADD `id_module` INT(10) NOT NULL DEFAULT '0', ADD `price` DECIMAL(20,6) NOT NULL DEFAULT '0', ADD `weight` DECIMAL(20,6) NOT NULL DEFAULT '0';
 ALTER TABLE `PREFIX_customization_field` ADD `is_module` TINYINT(1) NOT NULL DEFAULT '0' ;
+
+INSERT INTO `PREFIX_configuration` (name, value, date_add, date_upd) VALUES ('PS_MAINTENANCE_TEXT', 'We are currently updating our shop and will be back really soon.&lt;br&gt;Thanks for your patience.', NOW(), NOW());
+INSERT INTO `PREFIX_configuration_lang` (`id_configuration`, `id_lang`, `value`, `date_upd`) SELECT c.`id_configuration`, l.`id_lang`, c.`value`, NOW() FROM `PREFIX_configuration` c, `PREFIX_lang` l WHERE c.`name` = 'PS_MAINTENANCE_TEXT';
+
+/* Right management */
+CREATE TABLE `PREFIX_authorization_role` (
+  `id_authorization_role` int(10) unsigned NOT NULL auto_increment,
+  `slug` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id_authorization_role`)
+) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8;
+
+RENAME TABLE `PREFIX_access` TO `PREFIX_access_old`;
+RENAME TABLE `PREFIX_module_access` TO `PREFIX_module_access_old`;
+
+CREATE TABLE `PREFIX_access` (
+  `id_profile` int(10) unsigned NOT NULL,
+  `id_authorization_role` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id_profile`,`id_authorization_role`)
+) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8;
+
+CREATE TABLE `PREFIX_module_access` (
+  `id_profile` int(10) unsigned NOT NULL,
+  `id_authorization_role` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id_profile`,`id_authorization_role`)
+) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8;
+
+/* Add Payment Preferences tab. SuperAdmin profile is the only one to access it. */
+/* PHP:ps_1702_right_management(); */;
+
+DROP TABLE `PREFIX_access_old`;
+DROP TABLE `PREFIX_module_access_old`;
+
+DELETE FROM `PREFIX_configuration` WHERE `name` = 'PS_CUSTOMER_NWSL';
+
+ALTER TABLE `PREFIX_cart_rule` ADD  `reduction_exclude_special` TINYINT(1) UNSIGNED NOT NULL DEFAULT  '0' AFTER  `reduction_percent`;
+ALTER TABLE `PREFIX_product` ADD state INT UNSIGNED NOT NULL DEFAULT '1';
+ALTER TABLE `PREFIX_product` ADD KEY state (state, date_upd);
+
+DELETE FROM `PREFIX_configuration` WHERE `name` IN ('PS_STORES_DISPLAY_FOOTER', 'PS_STORES_SIMPLIFIED', 'PS_STORES_CENTER_LAT', 'PS_STORES_CENTER_LONG', 'PS_STORES_DISPLAY_SITEMAP');

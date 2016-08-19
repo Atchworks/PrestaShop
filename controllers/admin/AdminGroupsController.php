@@ -36,6 +36,9 @@ class AdminGroupsControllerCore extends AdminController
         $this->className = 'Group';
         $this->list_id = 'group';
         $this->lang = true;
+
+        parent::__construct();
+        
         $this->addRowAction('edit');
         $this->addRowAction('view');
         $this->addRowAction('delete');
@@ -55,7 +58,7 @@ class AdminGroupsControllerCore extends AdminController
 
         $this->fields_list = array(
             'id_group' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->trans('ID', array(), 'Admin.Global'),
                 'align' => 'center',
                 'class' => 'fixed-width-xs'
             ),
@@ -88,8 +91,6 @@ class AdminGroupsControllerCore extends AdminController
         );
 
         $this->addRowActionSkipList('delete', $groups_to_keep);
-
-        parent::__construct();
 
         $this->_select .= '(SELECT COUNT(jcg.`id_customer`)
 		FROM `'._DB_PREFIX_.'customer_group` jcg
@@ -131,7 +132,7 @@ class AdminGroupsControllerCore extends AdminController
                         ),
                     ),
                     'submit' => array(
-                        'title' => $this->l('Save'),
+                        'title' => $this->trans('Save', array(), 'Admin.Actions'),
                     )
                 ),
             );
@@ -229,14 +230,14 @@ class AdminGroupsControllerCore extends AdminController
         $this->explicitSelect = true;
 
         $this->fields_list = (array(
-            'id_customer' => array('title' => $this->l('ID'), 'align' => 'center', 'filter_key' => 'c!id_customer', 'class' => 'fixed-width-xs'),
+            'id_customer' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'filter_key' => 'c!id_customer', 'class' => 'fixed-width-xs'),
             'id_gender' => array('title' => $this->l('Social title'), 'icon' => $genders_icon, 'list' => $genders),
             'firstname' => array('title' => $this->l('First name')),
             'lastname' => array('title' => $this->l('Last name')),
             'email' => array('title' => $this->l('Email address'), 'filter_key' => 'c!email', 'orderby' => true),
             'birthday' => array('title' => $this->l('Birth date'), 'type' => 'date', 'class' => 'fixed-width-md', 'align' => 'center'),
             'date_add' => array('title' => $this->l('Registration date'), 'type' => 'date', 'class' => 'fixed-width-md', 'align' => 'center'),
-            'active' => array('title' => $this->l('Enabled'), 'align' => 'center', 'class' => 'fixed-width-sm', 'type' => 'bool', 'search' => false, 'orderby' => false, 'filter_key' => 'c!active', 'callback' => 'printOptinIcon')
+            'active' => array('title' => $this->trans('Enabled', array(), 'Admin.Global'), 'align' => 'center', 'class' => 'fixed-width-sm', 'type' => 'bool', 'search' => false, 'orderby' => false, 'filter_key' => 'c!active', 'callback' => 'printOptinIcon')
         ));
         $this->_select = 'c.*, a.id_group';
         $this->_join = 'LEFT JOIN `'._DB_PREFIX_.'customer` c ON (a.`id_customer` = c.`id_customer`)';
@@ -266,12 +267,12 @@ class AdminGroupsControllerCore extends AdminController
                 'icon' => 'icon-group'
             ),
             'submit' => array(
-                'title' => $this->l('Save'),
+                'title' => $this->trans('Save', array(), 'Admin.Actions'),
             ),
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Name'),
+                    'label' => $this->trans('Name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'required' => true,
                     'lang' => true,
@@ -318,12 +319,12 @@ class AdminGroupsControllerCore extends AdminController
                         array(
                             'id' => 'show_prices_on',
                             'value' => 1,
-                            'label' => $this->l('Enabled')
+                            'label' => $this->trans('Enabled', array(), 'Admin.Global')
                         ),
                         array(
                             'id' => 'show_prices_off',
                             'value' => 0,
-                            'label' => $this->l('Disabled')
+                            'label' => $this->trans('Disabled', array(), 'Admin.Global')
                         )
                     ),
                     'hint' => $this->l('Customers in this group can view prices.')
@@ -450,7 +451,7 @@ class AdminGroupsControllerCore extends AdminController
     public function processSave()
     {
         if (!$this->validateDiscount(Tools::getValue('reduction'))) {
-            $this->errors[] = Tools::displayError('The discount value is incorrect (must be a percentage).');
+            $this->errors[] = $this->trans('The discount value is incorrect (must be a percentage).', array(), 'Admin.Parameters.Notification');
         } else {
             $this->updateCategoryReduction();
             $object = parent::processSave();
@@ -475,10 +476,10 @@ class AdminGroupsControllerCore extends AdminController
 
         $result = array();
         if (!Validate::isUnsignedId($id_category)) {
-            $result['errors'][] = Tools::displayError('Wrong category ID.');
+            $result['errors'][] = $this->trans('Wrong category ID.', array(), 'Admin.Parameters.Notification');
             $result['hasError'] = true;
         } elseif (!$this->validateDiscount($category_reduction)) {
-            $result['errors'][] = Tools::displayError('The discount value is incorrect (must be a percentage).');
+            $result['errors'][] = $this->trans('The discount value is incorrect (must be a percentage).', array(), 'Admin.Parameters.Notification');
             $result['hasError'] = true;
         } else {
             $result['id_category'] = (int)$id_category;
@@ -524,7 +525,7 @@ class AdminGroupsControllerCore extends AdminController
             }
             foreach ($category_reduction as $cat => $reduction) {
                 if (!Validate::isUnsignedId($cat) || !$this->validateDiscount($reduction)) {
-                    $this->errors[] = Tools::displayError('The discount value is incorrect.');
+                    $this->errors[] = $this->trans('The discount value is incorrect.', array(), 'Admin.Parameters.Notification');
                 } else {
                     $category = new Category((int)$cat);
                     $category->addGroupsIfNoExist((int)Tools::getValue('id_group'));
@@ -533,7 +534,7 @@ class AdminGroupsControllerCore extends AdminController
                     $group_reduction->reduction = (float)($reduction / 100);
                     $group_reduction->id_category = (int)$cat;
                     if (!$group_reduction->save()) {
-                        $this->errors[] = Tools::displayError('You cannot save group reductions.');
+                        $this->errors[] = $this->trans('You cannot save group reductions.', array(), 'Admin.Parameters.Notification');
                     }
                 }
             }
@@ -547,11 +548,11 @@ class AdminGroupsControllerCore extends AdminController
     {
         $group = new Group($this->id_object);
         if (!Validate::isLoadedObject($group)) {
-            $this->errors[] = Tools::displayError('An error occurred while updating this group.');
+            $this->errors[] = $this->trans('An error occurred while updating this group.', array(), 'Admin.Parameters.Notification');
         }
         $update = Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'group` SET show_prices = '.($group->show_prices ? 0 : 1).' WHERE `id_group` = '.(int)$group->id);
         if (!$update) {
-            $this->errors[] = Tools::displayError('An error occurred while updating this group.');
+            $this->errors[] = $this->trans('An error occurred while updating this group.', array(), 'Admin.Parameters.Notification');
         }
         Tools::clearSmartyCache();
         Tools::redirectAdmin(self::$currentIndex.'&token='.$this->token);

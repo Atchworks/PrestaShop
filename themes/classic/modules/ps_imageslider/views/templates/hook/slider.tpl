@@ -25,7 +25,7 @@
 *}
 
 {if $homeslider.slides}
-  <div id="carousel" data-ride="carousel" class="carousel slide" data-interval="{$homeslider.speed}" data-wrap="{(string)$homeslider.wrap}" data-pause="{$homeslider.pause}">
+  <div id="carousel" data-ride="carousel" class="carousel slide hidden-sm-down" data-interval="{$homeslider.speed}" data-wrap="{(string)$homeslider.wrap}" data-pause="{$homeslider.pause}">
     <ul class="carousel-inner" role="listbox">
       {foreach from=$homeslider.slides item=slide name='homeslider'}
         <li class="carousel-item {if $smarty.foreach.homeslider.first}active{/if}">
@@ -33,7 +33,7 @@
             <img src="{$slide.image_url}" alt="{$slide.legend|escape}">
             {if $slide.title || $slide.description}
               <figcaption class="caption">
-                <h2 class="h1 text-uppercase caption-title">{$slide.title}</h2>
+                <h2 class="display-1 text-uppercase">{$slide.title}</h2>
                 <div class="caption-description">{$slide.description nofilter}</div>
               </figcaption>
             {/if}

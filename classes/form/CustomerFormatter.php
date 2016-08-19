@@ -7,7 +7,6 @@ class CustomerFormatterCore implements FormFormatterInterface
     private $language;
 
     private $ask_for_birthdate              = true;
-    private $ask_for_newsletter             = true;
     private $ask_for_partner_optin          = true;
     private $ask_for_password               = true;
     private $password_is_required           = true;
@@ -24,12 +23,6 @@ class CustomerFormatterCore implements FormFormatterInterface
     public function setAskForBirthdate($ask_for_birthdate)
     {
         $this->ask_for_birthdate = $ask_for_birthdate;
-        return $this;
-    }
-
-    public function setAskForNewsletter($ask_for_newsletter)
-    {
-        $this->ask_for_newsletter = $ask_for_newsletter;
         return $this;
     }
 
@@ -71,7 +64,7 @@ class CustomerFormatterCore implements FormFormatterInterface
             ->setType('radio-buttons')
             ->setLabel(
                 $this->translator->trans(
-                    'Social title', [], 'Customer'
+                    'Social title', [], 'Shop.Forms.Labels'
                 )
             )
         ;
@@ -84,7 +77,7 @@ class CustomerFormatterCore implements FormFormatterInterface
             ->setName('firstname')
             ->setLabel(
                 $this->translator->trans(
-                    'First name', [], 'Customer'
+                    'First name', [], 'Shop.Forms.Labels'
                 )
             )
             ->setRequired(true)
@@ -94,7 +87,7 @@ class CustomerFormatterCore implements FormFormatterInterface
             ->setName('lastname')
             ->setLabel(
                 $this->translator->trans(
-                    'Last name', [], 'Customer'
+                    'Last name', [], 'Shop.Forms.Labels'
                 )
             )
             ->setRequired(true)
@@ -105,7 +98,7 @@ class CustomerFormatterCore implements FormFormatterInterface
             ->setType('email')
             ->setLabel(
                 $this->translator->trans(
-                    'Email', [], 'Customer'
+                    'Email', [], 'Shop.Forms.Labels'
                 )
             )
             ->setRequired(true)
@@ -117,7 +110,7 @@ class CustomerFormatterCore implements FormFormatterInterface
                 ->setType('password')
                 ->setLabel(
                     $this->translator->trans(
-                        'Password', [], 'Customer'
+                        'Password', [], 'Shop.Forms.Labels'
                     )
                 )
                 ->setRequired($this->password_is_required)
@@ -130,7 +123,7 @@ class CustomerFormatterCore implements FormFormatterInterface
                 ->setType('password')
                 ->setLabel(
                     $this->translator->trans(
-                        'New password', [], 'Customer'
+                        'New password', [], 'Shop.Forms.Labels'
                     )
                 )
             ;
@@ -142,20 +135,13 @@ class CustomerFormatterCore implements FormFormatterInterface
                 ->setType('date')
                 ->setLabel(
                     $this->translator->trans(
-                        'Birthdate', [], 'Customer'
+                        'Birthdate', [], 'Shop.Forms.Labels'
                     )
                 )
-            ;
-        }
-
-        if ($this->ask_for_newsletter) {
-            $format['newsletter'] = (new FormField)
-                ->setName('newsletter')
-                ->setType('checkbox')
-                ->setLabel(
-                    $this->translator->trans(
-                        'Sign up for our newsletter', [], 'Customer'
-                    )
+                ->addAvailableValue('placeholder', Tools::getDateFormat())
+                ->addAvailableValue(
+                    'comment',
+                    $this->translator->trans('(E.g.: %date_format%)', array('%date_format%' => Tools::formatDateStr('31 May 1970')), 'Shop.Forms.Help')
                 )
             ;
         }
@@ -166,11 +152,19 @@ class CustomerFormatterCore implements FormFormatterInterface
                 ->setType('checkbox')
                 ->setLabel(
                     $this->translator->trans(
-                        'Receive offers from our partners', [], 'Customer'
+                        'Receive offers from our partners', [], 'Shop.Theme.CustomerAccount'
                     )
                 )
             ;
         }
+
+        $additionalCustomerFormFields = Hook::exec('additionalCustomerFormFields', array(), null, true);
+
+        if (!is_array($additionalCustomerFormFields)) {
+            $additionalCustomerFormFields = array();
+        }
+
+        $format = array_merge($format, $additionalCustomerFormFields);
 
         // TODO: TVA etc.?
 

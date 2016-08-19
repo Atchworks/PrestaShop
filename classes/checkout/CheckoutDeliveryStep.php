@@ -86,12 +86,13 @@ class CheckoutDeliveryStepCore extends AbstractCheckoutStep
 
             return sprintf(
                 $this->getTranslator()->trans(
-                    ' (additional cost of %s%s)',
-                    array(),
-                    'Checkout'
-                ),
-                $priceFormatter->convertAndFormat($this->getGiftCost()),
-                $taxLabel
+                    ' (additional cost of %giftcost% %taxlabel%)',
+                    array(
+                        '%giftcost%' => $priceFormatter->convertAndFormat($this->getGiftCost()),
+                        '%taxlabel%' => $taxLabel,
+                    ),
+                    'Shop.Theme.Checkout'
+                )
             );
         }
 
@@ -129,7 +130,7 @@ class CheckoutDeliveryStepCore extends AbstractCheckoutStep
             $this->getTranslator()->trans(
                 'Shipping Method',
                 array(),
-                'Checkout'
+                'Shop.Theme.Checkout'
             )
         );
 

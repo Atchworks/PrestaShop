@@ -32,9 +32,9 @@
 		{if isset($errors)}
 			<h4>
 				{if isset($nbErrors) && $nbErrors > 1}
-					{l s='There are %d errors.' sprintf=$nbErrors}
+					{l s='There are %d errors.' sprintf=[$nbErrors]}
 				{else}
-					{l s='There is %d error.' sprintf=$nbErrors}
+					{l s='There is %d error.' sprintf=[$nbErrors]}
 				{/if}
 			</h4>
 			<ol>
@@ -131,7 +131,7 @@
 					<div class="panel-footer">
 						<button type="button" href="#" class="btn btn-default show-login-form" tabindex="7">
 							<i class="icon-caret-left"></i>
-							{l s='Cancel'}
+							{l s='Cancel' d='Admin.Actions'}
 						</button>
 						<button class="btn btn-primary btn-default pull-right" name="submitLogin" type="submit" tabindex="6">
 							<i class="icon-ok text-success"></i>
@@ -153,12 +153,12 @@
 					<li>{l s='deleted the /install folder'}</li>
 				{/if}
 				{if isset($wrong_folder_name) && $wrong_folder_name == true}
-					<li>{l s='renamed the /admin folder (e.g. %s)' sprintf=$randomNb}</li>
+					<li>{l s='renamed the /admin folder (e.g. %s)' sprintf=[$randomNb]}</li>
 				{/if}
 			</ul>
 			<p>
 				<a href="{$adminUrl|escape:'html':'UTF-8'}">
-					{l s='Please then access this page by the new URL (e.g. %s)' sprintf=$adminUrl}
+					{l s='Please then access this page by the new URL (e.g. %s)' sprintf=[$adminUrl]}
 				</a>
 			</p>
 		</div>

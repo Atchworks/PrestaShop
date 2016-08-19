@@ -71,11 +71,13 @@
 	
 	__webpack_require__(9);
 	
+	__webpack_require__(10);
+	
 	var _prestashop = __webpack_require__(4);
 	
 	var _prestashop2 = _interopRequireDefault(_prestashop);
 	
-	var _events = __webpack_require__(10);
+	var _events = __webpack_require__(11);
 	
 	var _events2 = _interopRequireDefault(_events);
 	
@@ -1711,6 +1713,43 @@
 	      _prestashop2['default'].emit('cart dom updated');
 	    });
 	  });
+	
+	  (0, _jquery2['default'])('body').on('click', '[data-button-action="add-to-cart"]', function (event) {
+	    event.preventDefault();
+	    var $form = (0, _jquery2['default'])((0, _jquery2['default'])(event.target).closest('form'));
+	    var query = $form.serialize() + '&add=1&action=update';
+	    var actionURL = $form.attr('action');
+	
+	    _jquery2['default'].post(actionURL, query, null, 'json').then(function (resp) {
+	      _prestashop2['default'].emit('cart updated', {
+	        reason: {
+	          idProduct: resp.id_product,
+	          idProductAttribute: resp.id_product_attribute,
+	          linkAction: 'add-to-cart'
+	        }
+	      });
+	    });
+	  });
+	
+	  (0, _jquery2['default'])('body').on('submit', '[data-link-action="add-voucher"]', function (event) {
+	    event.preventDefault();
+	
+	    (0, _jquery2['default'])(this).append((0, _jquery2['default'])('<input>').attr('type', 'hidden').attr('name', 'ajax').val('1'));
+	    (0, _jquery2['default'])(this).append((0, _jquery2['default'])('<input>').attr('type', 'hidden').attr('name', 'action').val('update'));
+	
+	    // First perform the action using AJAX
+	    var actionURL = (0, _jquery2['default'])(this).attr('action');
+	
+	    _jquery2['default'].post(actionURL, (0, _jquery2['default'])(this).serialize(), null, 'json').then(function (res) {
+	      if (res.hasError) {
+	        return (0, _jquery2['default'])('.js-error').show().find('.js-error-text').text(res.errors[0]);
+	      }
+	      // If succesful, refresh cart preview
+	      _prestashop2['default'].emit('cart updated', {
+	        reason: event.target.dataset
+	      });
+	    });
+	  });
 	});
 
 /***/ },
@@ -1762,7 +1801,28 @@
 	
 	  (0, _jquery2['default'])('#' + option + '-additional-information').show();
 	  (0, _jquery2['default'])('#pay-with-' + option + '-form').show();
-	  (0, _jquery2['default'])('#payment-confirmation button').attr('disabled', !show);
+	
+	  var module_name = (0, _jquery2['default'])('#' + option).data('module-name');
+	
+	  if ((0, _jquery2['default'])('#' + option).hasClass('binary')) {
+	    var payment_option = '.js-payment-' + module_name;
+	    (0, _jquery2['default'])('#payment-confirmation').hide();
+	    (0, _jquery2['default'])(payment_option).show();
+	    if (show) {
+	      (0, _jquery2['default'])(payment_option).removeClass('disabled');
+	    } else {
+	      (0, _jquery2['default'])(payment_option).addClass('disabled');
+	    }
+	  } else {
+	    (0, _jquery2['default'])('.js-payment-binary').hide();
+	    (0, _jquery2['default'])('#payment-confirmation').show();
+	    (0, _jquery2['default'])('#payment-confirmation button').attr('disabled', !show);
+	    if (show) {
+	      (0, _jquery2['default'])('.js-alert-payment-condtions').hide();
+	    } else {
+	      (0, _jquery2['default'])('.js-alert-payment-condtions').show();
+	    }
+	  }
 	}
 	
 	function confirmPayment() {
@@ -1773,11 +1833,9 @@
 	}
 	
 	function refreshDeliveryOptions(event) {
-	  var params = (0, _jquery2['default'])('#delivery-method').serialize() + '&action=selectDeliveryOption';
-	  _jquery2['default'].post('', params).then(function (resp) {
-	    _jquery2['default'].post(location.href, null, null, 'json').then(function (resp) {
-	      (0, _jquery2['default'])('#checkout-cart-summary').replaceWith(resp.preview);
-	    });
+	  var params = (0, _jquery2['default'])('#delivery-method').serialize();
+	  _jquery2['default'].post((0, _jquery2['default'])('#delivery-method').data('url-update'), params).then(function (resp) {
+	    (0, _jquery2['default'])('#checkout-cart-summary').replaceWith(resp.preview);
 	  });
 	}
 	
@@ -1800,21 +1858,43 @@
 	  (0, _jquery2['default'])('body').on('change', 'input[name="payment-option"]', enableOrDisableOrderButton);
 	  (0, _jquery2['default'])('body').on('change', 'input[type="checkbox"][data-action="hideOrShow"]', hideOrShow);
 	
-	  (0, _jquery2['default'])('body').on('click', '.checkout-step.-reachable h1', function (event) {
-	    (0, _jquery2['default'])('.-js-current, .-current').removeClass('-js-current -current');
-	    (0, _jquery2['default'])(event.target).closest('.checkout-step').toggleClass('-js-current');
-	  });
-	  (0, _jquery2['default'])('body').on('click', '.checkout-step.-unreachable h1', function (event) {
-	    (0, _jquery2['default'])('button.continue').last().click();
+	  (0, _jquery2['default'])('.js-edit-addresses').on('click', function (event) {
+	    event.stopPropagation();
+	    (0, _jquery2['default'])('#checkout-addresses-step').trigger('click');
 	  });
 	
+	  (0, _jquery2['default'])('.js-edit-delivery').on('click', function (event) {
+	    event.stopPropagation();
+	    (0, _jquery2['default'])('#checkout-delivery-step').trigger('click');
+	  });
+	
+	  changeCurrentCheckoutStep();
 	  collapsePaymentOptions();
+	}
+	
+	function changeCurrentCheckoutStep() {
+	  (0, _jquery2['default'])('.checkout-step').off('click');
+	
+	  (0, _jquery2['default'])('.-js-current').prevAll().add((0, _jquery2['default'])('#checkout-personal-information-step.-js-current').nextAll()).on('click', function (event) {
+	    (0, _jquery2['default'])('.-js-current, .-current').removeClass('-js-current -current');
+	    (0, _jquery2['default'])(event.target).closest('.checkout-step').toggleClass('-js-current');
+	    _prestashop2['default'].emit('change current checkout step');
+	  });
+	
+	  (0, _jquery2['default'])('.-js-current:not(#checkout-personal-information-step)').nextAll().on('click', function (event) {
+	    (0, _jquery2['default'])('.-js-current button.continue').click();
+	    _prestashop2['default'].emit('change current checkout step');
+	  });
 	}
 	
 	(0, _jquery2['default'])(document).ready(function () {
 	  if ((0, _jquery2['default'])('body#checkout').length === 1) {
 	    setupCheckoutScripts();
 	  }
+	
+	  _prestashop2['default'].on('change current checkout step', function (event) {
+	    changeCurrentCheckoutStep();
+	  });
 	});
 
 /***/ },
@@ -1955,20 +2035,27 @@
 	var _prestashop2 = _interopRequireDefault(_prestashop);
 	
 	(0, _jquery2['default'])(document).ready(function () {
-	  (0, _jquery2['default'])('body').on('change', '.product-variants [data-product-attribute], #quantity_wanted', function () {
+	  (0, _jquery2['default'])('body').on('change', '.product-variants [data-product-attribute]', function () {
 	    (0, _jquery2['default'])("input[name$='refresh']").click();
 	  });
 	
 	  _prestashop2['default'].on('product updated', function (event) {
+	    if (typeof event.refreshUrl == "undefined") {
+	      event.refreshUrl = true;
+	    }
+	
 	    _jquery2['default'].post(event.reason.productUrl, { ajax: '1', action: 'refresh' }, null, 'json').then(function (resp) {
 	      (0, _jquery2['default'])('.product-prices').replaceWith(resp.product_prices);
 	      (0, _jquery2['default'])('.product-customization').replaceWith(resp.product_customization);
 	      (0, _jquery2['default'])('.product-variants').replaceWith(resp.product_variants);
+	      (0, _jquery2['default'])('.product-discounts').replaceWith(resp.product_discounts);
 	      (0, _jquery2['default'])('.images-container').replaceWith(resp.product_cover_thumbnails);
 	      (0, _jquery2['default'])('#product-details').replaceWith(resp.product_details);
 	      (0, _jquery2['default'])('.product-add-to-cart').replaceWith(resp.product_add_to_cart);
 	
-	      window.history.pushState({ id_product_attribute: resp.id_product_attribute }, undefined, resp.product_url);
+	      if (true == event.refreshUrl) {
+	        window.history.pushState({ id_product_attribute: resp.id_product_attribute }, undefined, resp.product_url);
+	      }
 	
 	      _prestashop2['default'].emit('product dom updated');
 	    });
@@ -1977,6 +2064,54 @@
 
 /***/ },
 /* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	var _jquery = __webpack_require__(2);
+	
+	var _jquery2 = _interopRequireDefault(_jquery);
+	
+	var _prestashop = __webpack_require__(4);
+	
+	var _prestashop2 = _interopRequireDefault(_prestashop);
+	
+	(0, _jquery2['default'])(document).ready(function () {
+	  _prestashop2['default'].on('address form updated', function (event) {
+	    changeCountry();
+	  });
+	
+	  changeCountry();
+	});
+	
+	function changeCountry() {
+	  (0, _jquery2['default'])('.js-country').change(function () {
+	    var requestData = {
+	      id_country: (0, _jquery2['default'])('.js-country').val(),
+	      id_address: (0, _jquery2['default'])('.js-address-form form').data('id-address')
+	    };
+	
+	    _jquery2['default'].post((0, _jquery2['default'])('.js-address-form form').data('link-update'), requestData).then(function (resp) {
+	      var inputs = [];
+	      (0, _jquery2['default'])('.js-address-form input').each(function () {
+	        inputs[(0, _jquery2['default'])(this).prop('name')] = (0, _jquery2['default'])(this).val();
+	      });
+	
+	      (0, _jquery2['default'])('.js-address-form').replaceWith(resp.address_form);
+	
+	      (0, _jquery2['default'])('.js-address-form input').each(function () {
+	        (0, _jquery2['default'])(this).val(inputs[(0, _jquery2['default'])(this).prop('name')]);
+	      });
+	
+	      _prestashop2['default'].emit('address form updated');
+	    });
+	  });
+	}
+
+/***/ },
+/* 11 */
 /***/ function(module, exports) {
 
 	// Copyright Joyent, Inc. and other Node contributors.

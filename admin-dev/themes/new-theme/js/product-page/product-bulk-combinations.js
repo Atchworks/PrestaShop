@@ -6,10 +6,15 @@ import $ from 'jquery';
 export default function() {
 
   var bulkForm = $('#bulk-combinations-container');
-  var combinationsTable = $('#accordion_combinations');
   var deleteCombinationsBtn = $('#delete-combinations');
   var applyChangesBtn = $('#apply-on-combinations');
   var syncedCollection = $('[data-uniqid]');
+  var finalPrice = $('#form_step2_price');
+  var finalPriceIT = $('#form_step2_price_ttc');
+  var finalPriceBasics = $('#form_step1_price_shortcut');
+  var finalPriceBasicsIT = $('#form_step1_price_ttc_shortcut');
+  var impactOnPriceSelector = 'input.attribute_priceTE';
+  var finalPriceSelector = '.attribute-finalprice span';
 
   return {
     'init': function init() {
@@ -22,7 +27,29 @@ export default function() {
 
       applyChangesBtn.on('click', (event) => {
         event.preventDefault();
-        that.applyChangesOnCombinations();
+        that.applyChangesOnCombinations()
+            .hideForm()
+            .resetForm()
+            .unselectCombinations()
+            .submitUpdate();
+      });
+
+      /* if final price change with user interaction, combinations should be impacted */
+      finalPrice.on('blur', () => {
+        this.syncToPricingTab();
+      });
+
+      finalPriceIT.on('blur', () => {
+        this.syncToPricingTab();
+      });
+
+      /* if we use final price shortcuts, also combinations should be impacted */
+      finalPriceBasics.on('blur', () => {
+        this.syncToPricingTab();
+      });
+
+      finalPriceBasicsIT.on('blur', () => {
+        this.syncToPricingTab();
       });
 
       syncedCollection.on('DOMSubtreeModified', (event) => {
@@ -41,9 +68,16 @@ export default function() {
 
       // bulk select animation
       $('#toggle-all-combinations').on('change', (event) => {
-        $('#accordion_combinations td:first-child input[type="checkbox"]').each(function () {
+        $('#accordion_combinations td:first-child input[type="checkbox"]').each(function() {
           $(this).prop('checked', $(event.currentTarget).prop('checked'));
         });
+      });
+
+      $(document).on('change', '.js-combination', () => {
+        if ($('.bulk-action').attr('aria-expanded') === "false" || !$('.js-combination').is(':checked')) {
+          $('.js-collapse').collapse('toggle');
+        }
+        $('span.js-bulk-combinations').text($('input.js-combination:checked').length);
       });
     },
     'getSelectedCombinations': function getSelectedCombinations() {
@@ -64,6 +98,8 @@ export default function() {
         combination.updateForm(values);
         combination.syncValues(values);
       });
+
+      return this;
     },
     'deleteCombinations': function deleteCombinations() {
       var combinations = this.getSelectedCombinations();
@@ -77,7 +113,9 @@ export default function() {
           var deletionURL = $(deleteCombinationsBtn).attr('data');
           $.ajax({
             type: 'DELETE',
-            data: {'attribute-ids': combinationsIds},
+            data: {
+              'attribute-ids': combinationsIds
+            },
             url: deletionURL,
             success: function(response) {
               showSuccessMessage(response.message);
@@ -97,11 +135,48 @@ export default function() {
     'getFormValues': function getFormValues() {
       var values = [];
       $(bulkForm).find('input').each(function() {
-        if($(this).val() !== '' && $(this).attr('id') !== 'product_combination_bulk__token') {
-          values.push({'id' : $(this).attr('id'), 'value': $(this).val()});
+        if ($(this).val() !== '' && $(this).attr('id') !== 'product_combination_bulk__token') {
+          values.push({
+            'id': $(this).attr('id'),
+            'value': $(this).val()
+          });
         }
       });
       return values;
+    },
+    'resetForm': function resetForm() {
+      bulkForm.find('input').val('');
+
+      return this;
+    },
+    'unselectCombinations': function unselectCombinations() {
+      // Use of the bulk action button. It has an event listener to unselect all the combinations
+      $('#toggle-all-combinations').prop('checked', false);
+
+      return this;
+    },
+    'hideForm': function toggleForm() {
+      bulkForm.collapse('hide');
+
+      return this;
+    },
+    'submitUpdate': function submitUpdate() {
+      var globalProductSubmitButton = $('#form'); // @todo: choose a better identifier
+      globalProductSubmitButton.submit();
+    },
+    'syncToPricingTab': function syncToPricingTab() {
+      var newPrice = finalPrice.val();
+      $('tr.combination').toArray().forEach((item) => {
+        var jQueryRow = $('#'+item.id);
+        var jQueryFinalPriceEl = jQueryRow.find(finalPriceSelector);
+        var impactOnPriceEl = jQueryRow.find(impactOnPriceSelector);
+        var impactOnPrice = impactOnPriceEl.val();
+
+        jQueryFinalPriceEl.data('price', newPrice);
+        // calculate new price
+        var newFinalPrice = new Number(newPrice) + new Number(impactOnPrice);
+        jQueryFinalPriceEl.text(ps_round(newFinalPrice, 6));
+      });
     }
   };
 }
@@ -109,11 +184,11 @@ export default function() {
 class Combination {
   constructor(domId, index) {
     this.inputBulkPattern = "product_combination_bulk_";
-    this.inputPattern = "form_step3_combinations_"+index+"_";
+    this.inputPattern = "combination_" + index + "_";
     this.domId = domId;
-    this.appId = 'attribute_'+this.domId;
-    this.element = $('#'+this.appId);
-    this.form = $('#combination_form_'+this.domId);
+    this.appId = 'attribute_' + this.domId;
+    this.element = $('#' + this.appId);
+    this.form = $('#combination_form_' + this.domId);
   }
 
   isSelected() {
@@ -142,26 +217,26 @@ class Combination {
   convertInput(bulkInput) {
 
     var convertedInput = '';
-    switch(bulkInput) {
+    switch (bulkInput) {
       case "quantity":
       case "reference":
       case "minimal_quantity":
-        convertedInput = this.inputPattern+'attribute_'+bulkInput;
+        convertedInput = this.inputPattern + 'attribute_' + bulkInput;
         break;
       case "cost_price":
-        convertedInput = this.inputPattern+'attribute_wholesale_price';
+        convertedInput = this.inputPattern + 'attribute_wholesale_price';
         break;
       case "date_availability":
-        convertedInput = this.inputPattern+'available_date_attribute';
+        convertedInput = this.inputPattern + 'available_date_attribute';
         break;
       case "impact_on_weight":
-        convertedInput = this.inputPattern+'attribute_weight';
+        convertedInput = this.inputPattern + 'attribute_weight';
         break;
       case "impact_on_price_te":
-        convertedInput = this.inputPattern+'attribute_price';
+        convertedInput = this.inputPattern + 'attribute_price';
         break;
       case "impact_on_price_ti":
-        convertedInput = this.inputPattern+'attribute_priceTI';
+        convertedInput = this.inputPattern + 'attribute_priceTI';
         break;
       default:
     }
@@ -186,7 +261,7 @@ class Combination {
         'impact_on_price_te'
       ];
 
-      if (syncedProperties.indexOf(valueId) !== -1){
+      if (syncedProperties.indexOf(valueId) !== -1) {
         valueId = valueId === 'quantity' ? 'quantity' : 'price';
         var input = $(`#attribute_${this.domId} .attribute-${valueId} input`);
         input.val(value);

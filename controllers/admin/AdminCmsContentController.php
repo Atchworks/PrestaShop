@@ -48,6 +48,8 @@ class AdminCmsContentControllerCore extends AdminController
             die('Category cannot be loaded');
         }
 
+        parent::__construct();
+
         $this->table = 'cms';
         $this->className = 'CMS';
         $this->bulk_actions = array(
@@ -57,12 +59,14 @@ class AdminCmsContentControllerCore extends AdminController
                 'icon' => 'icon-trash'
             )
         );
+
         $this->admin_cms_categories = new AdminCmsCategoriesController();
+        $this->admin_cms_categories->tabAccess = $this->tabAccess;
         $this->admin_cms_categories->init();
         $this->admin_cms = new AdminCmsController();
+        $this->admin_cms->tabAccess = $this->tabAccess;
         $this->admin_cms->init();
-
-        parent::__construct();
+        $this->context->controller = $this;
     }
 
     /**
@@ -73,14 +77,6 @@ class AdminCmsContentControllerCore extends AdminController
     public static function getCurrentCMSCategory()
     {
         return self::$category;
-    }
-
-    public function viewAccess($disable = false)
-    {
-        $result = parent::viewAccess($disable);
-        $this->admin_cms_categories->tabAccess = $this->tabAccess;
-        $this->admin_cms->tabAccess = $this->tabAccess;
-        return $result;
     }
 
     public function initContent()
@@ -231,7 +227,7 @@ class AdminCmsContentControllerCore extends AdminController
 
     public function ajaxProcessUpdateCmsPositions()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             $id_cms = (int)Tools::getValue('id_cms');
             $id_category = (int)Tools::getValue('id_cms_category');
             $way = (int)Tools::getValue('way');
@@ -260,7 +256,7 @@ class AdminCmsContentControllerCore extends AdminController
 
     public function ajaxProcessUpdateCmsCategoriesPositions()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             $id_cms_category_to_move = (int)Tools::getValue('id_cms_category_to_move');
             $id_cms_category_parent = (int)Tools::getValue('id_cms_category_parent');
             $way = (int)Tools::getValue('way');
@@ -289,7 +285,7 @@ class AdminCmsContentControllerCore extends AdminController
 
     public function ajaxProcessPublishCMS()
     {
-        if ($this->tabAccess['edit'] === '1') {
+        if ($this->access('edit')) {
             if ($id_cms = (int)Tools::getValue('id_cms')) {
                 $bo_cms_url = _PS_BASE_URL_.__PS_BASE_URI__.basename(_PS_ADMIN_DIR_).'/index.php?tab=AdminCmsContent&id_cms='.(int)$id_cms.'&updatecms&token='.$this->token;
 

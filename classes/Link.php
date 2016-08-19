@@ -25,7 +25,7 @@
  */
 
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class LinkCore
 {
@@ -188,25 +188,7 @@ class LinkCore
         $id_product_attribute,
         $id_customization = null
     ) {
-        $params = [
-            'update' => 1,
-            'op' => 'up',
-            'id_product' => $id_product,
-            'id_product_attribute' => $id_product_attribute,
-            'token' => Tools::getToken(false)
-        ];
-
-        if ($id_customization) {
-            $params['id_customization'] = $id_customization;
-        }
-
-        return $this->getPageLink(
-            'cart',
-            true,
-            null,
-            $params,
-            false
-        );
+        return $this->getUpdateQuantityCartURL($id_product, $id_product_attribute, $id_customization, 'up');
     }
 
     public function getDownQuantityCartURL(
@@ -214,13 +196,25 @@ class LinkCore
         $id_product_attribute,
         $id_customization = null
     ) {
+        return $this->getUpdateQuantityCartURL($id_product, $id_product_attribute, $id_customization, 'down');
+    }
+
+    public function getUpdateQuantityCartURL(
+        $id_product,
+        $id_product_attribute,
+        $id_customization = null,
+        $op = null
+    ) {
         $params = [
             'update' => 1,
-            'op' => 'down',
             'id_product' => $id_product,
             'id_product_attribute' => $id_product_attribute,
             'token' => Tools::getToken(false)
         ];
+
+        if (!is_null($op)) {
+            $params['op'] = $op;
+        }
 
         if ($id_customization) {
             $params['id_customization'] = $id_customization;
@@ -534,8 +528,11 @@ class LinkCore
                 }
                 break;
             case 'AdminModulesSf':
+                if (array_key_exists('route', $sfRouteParams)) {
+                    return $sfRouter->generate($sfRouteParams['route'], array(), UrlGeneratorInterface::ABSOLUTE_URL);
+                }
                 // New architecture modification: temporary behavior to switch between old and new controllers.
-                return $sfRouter->generate('admin_module_catalog', array());
+                return $sfRouter->generate('admin_module_catalog', array(), UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
         $id_lang = Context::getContext()->language->id;

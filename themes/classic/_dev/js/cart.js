@@ -1,84 +1,62 @@
 import $ from 'jquery';
 import prestashop from 'prestashop';
 
+prestashop.cart = prestashop.cart || {};
+
+prestashop.cart.active_inputs = null;
+
 $(document).ready(() => {
   prestashop.on('cart dom updated', function(event) {
     createSpin();
   });
+  prestashop.on('cart updated', function(event) {
+    $('.quickview').modal('hide');
+  });
 
   $('body').on(
     'click',
-    '.js-touchspin, [data-link-action="delete-from-cart"], [data-link-action="remove-voucher"]',
+    '.-js-cart .js-touchspin, [data-link-action="delete-from-cart"], [data-link-action="remove-voucher"]',
     function(event) {
       event.preventDefault();
+      var el = $(event.currentTarget);
       // First perform the action using AJAX
       var actionURL = null;
-
-      if ($(event.currentTarget).hasClass('bootstrap-touchspin-up')) {
-        actionURL = $(event.currentTarget).parents('.bootstrap-touchspin').find('[data-up-url]').data('up-url');
-      } else if ($(event.currentTarget).hasClass('bootstrap-touchspin-down')) {
-        actionURL = $(event.currentTarget).parents('.bootstrap-touchspin').find('[data-up-url]').data('down-url');
+      if (el.hasClass('bootstrap-touchspin-up') || el.hasClass('bootstrap-touchspin-down')) {
+        var input = el.parents('.bootstrap-touchspin').find('input.cart-line-product-quantity');
+        if (input.is(':focus')) {
+          return;
+        }
+        actionURL = el.hasClass('bootstrap-touchspin-up') ? input.data('up-url') : input.data('down-url');
       } else{
         actionURL = $(event.currentTarget).attr('href');
       }
-
       $.post(actionURL, {
         ajax: '1',
         action: 'update'
       }, null, 'json').then(function() {
         // If succesful, refresh cart preview
         prestashop.emit('cart updated', {
-          reason: event.currentTarget.dataset
-        });
-      });
-    }
-  );
-  $('body').on(
-    'click',
-    '[data-button-action="add-to-cart"]',
-    function(event) {
-      event.preventDefault();
-      var $form = $($(event.target).closest('form'));
-      var query = $form.serialize() + '&add=1&action=update';
-      var actionURL = $form.attr('action');
-
-      $.post(actionURL, query, null, 'json').then(function(resp) {
-        $('.quickview').modal('hide');
-        prestashop.emit('cart updated', {
-          reason: {
-            idProduct: resp.id_product,
-            idProductAttribute: resp.id_product_attribute,
-            linkAction: 'add-to-cart'
-          }
+          reason: el.dataset
         });
       });
     }
   );
 
   $('body').on(
-    'submit',
-    '[data-link-action="add-voucher"]',
+    'focusout',
+    'input.cart-line-product-quantity',
     function(event) {
-      event.preventDefault();
+      updateQty(event);
+    }
+  );
 
-      $(this).append($('<input>')
-        .attr('type', 'hidden')
-        .attr('name', 'ajax').val('1')
-      );
-      $(this).append($('<input>')
-        .attr('type', 'hidden')
-        .attr('name', 'action').val('update')
-      );
-
-      // First perform the action using AJAX
-      var actionURL = $(this).attr('action');
-
-      $.post(actionURL, $(this).serialize(), null, 'json').then(function() {
-        // If succesful, refresh cart preview
-        prestashop.emit('cart updated', {
-          reason: event.target.dataset
-        });
-      });
+  $('body').on(
+    'keyup',
+    'input.cart-line-product-quantity',
+    function(event) {
+      if (event.keyCode == 13) {
+        updateQty(event);
+      }
     }
   );
 
@@ -92,6 +70,35 @@ function createSpin()
     verticalupclass: 'material-icons touchspin-up',
     verticaldownclass: 'material-icons touchspin-down',
     buttondown_class: 'btn btn-touchspin js-touchspin',
-    buttonup_class: 'btn btn-touchspin js-touchspin'
+    buttonup_class: 'btn btn-touchspin js-touchspin',
+    min: 1,
+    max: 1000000
+  });
+}
+
+function updateQty(event)
+{
+  var el = $(event.currentTarget);
+  var actionURL = el.data('update-url');
+  var baseValue = el.attr('value');
+  var targetValue = el.val();
+  if (targetValue != parseInt(targetValue) || targetValue < 0) {
+    return;
+  }
+  var qty = targetValue - baseValue;
+  if (qty == 0) {
+    return;
+  }
+  var dir = (qty > 0) ? 'up' : 'down';
+  $.post(actionURL, {
+    ajax: '1',
+    qty: Math.abs(qty),
+    action: 'update',
+    op: dir
+  }, null, 'json').then(function() {
+    // If succesful, refresh cart preview
+    prestashop.emit('cart updated', {
+      reason: el.dataset
+    });
   });
 }

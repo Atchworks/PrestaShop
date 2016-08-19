@@ -72,7 +72,7 @@ class AdminShopControllerCore extends AdminController
                 'havingFilter' => 'url',
             ),
             /*'active' => array(
-                'title' => $this->l('Enabled'),
+                'title' => $this->trans('Enabled', array(), 'Admin.Global'),
                 'align' => 'center',
                 'active' => 'status',
                 'type' => 'bool',
@@ -83,6 +83,11 @@ class AdminShopControllerCore extends AdminController
         );
 
         parent::__construct();
+    }
+
+    public function getTabSlug()
+    {
+        return 'ROLE_MOD_TAB_ADMINSHOPGROUP_';
     }
 
     public function viewAccess($disable = false)
@@ -255,7 +260,7 @@ class AdminShopControllerCore extends AdminController
         if (Tools::isSubmit('submitAddshopAndStay') || Tools::isSubmit('submitAddshop')) {
             $shop_group = new ShopGroup((int)Tools::getValue('id_shop_group'));
             if ($shop_group->shopNameExists(Tools::getValue('name'), (int)Tools::getValue('id_shop'))) {
-                $this->errors[] = Tools::displayError('You cannot have two shops with the same name in the same group.');
+                $this->errors[] = $this->trans('You cannot have two shops with the same name in the same group.', array(), 'Admin.Parameters.Notification');
             }
         }
 
@@ -280,7 +285,7 @@ class AdminShopControllerCore extends AdminController
     public function processDelete()
     {
         if (!Validate::isLoadedObject($object = $this->loadObject())) {
-            $this->errors[] = Tools::displayError('Unable to load this shop.');
+            $this->errors[] = $this->trans('Unable to load this shop.', array(), 'Admin.Parameters.Notification');
         } elseif (!Shop::hasDependency($object->id)) {
             $result = Category::deleteCategoriesFromShop($object->id) && parent::processDelete();
             Tools::generateHtaccess();
@@ -373,7 +378,7 @@ class AdminShopControllerCore extends AdminController
 
         $this->fields_form = array(
             'legend' => array(
-                'title' => $this->l('Shop'),
+                'title' => $this->trans('Shop', array(), 'Admin.Global'),
                 'icon' => 'icon-shopping-cart'
             ),
             'identifier' => 'shop_id',
@@ -503,7 +508,7 @@ class AdminShopControllerCore extends AdminController
         );
         /*$this->fields_form['input'][] = array(
             'type' => 'switch',
-            'label' => $this->l('Enabled'),
+            'label' => $this->trans('Enabled', array(), 'Admin.Global'),
             'name' => 'active',
             'required' => true,
             'is_bool' => true,
@@ -532,7 +537,7 @@ class AdminShopControllerCore extends AdminController
         );
 
         $this->fields_form['submit'] = array(
-            'title' => $this->l('Save'),
+            'title' => $this->trans('Save', array(), 'Admin.Actions'),
         );
 
         if (Shop::getTotalShops() > 1 && $obj->id) {
@@ -551,7 +556,7 @@ class AdminShopControllerCore extends AdminController
             'employee' => $this->l('Employees'),
             'image' => $this->l('Images'),
             'lang' => $this->l('Languages'),
-            'manufacturer' => $this->l('Manufacturers'),
+            'manufacturer' => $this->l('Brands'),
             'module' => $this->l('Modules'),
             'hook_module' => $this->l('Module hooks'),
             'meta_lang' => $this->l('Meta information'),
@@ -607,12 +612,22 @@ class AdminShopControllerCore extends AdminController
             );
         }
 
+        if (!$obj->theme_name) {
+            $themes = (new ThemeManagerBuilder($this->context, Db::getInstance()))
+                            ->buildRepository()
+                            ->getList();
+            $theme = array_pop($themes);
+            $theme_name = $theme->getName();
+        } else {
+            $theme_name = $obj->theme_name;
+        }
+
         $this->fields_value = array(
             'id_shop_group' => (Tools::getValue('id_shop_group') ? Tools::getValue('id_shop_group') :
                 (isset($obj->id_shop_group)) ? $obj->id_shop_group : Shop::getContextShopGroupID()),
             'id_category' => (Tools::getValue('id_category') ? Tools::getValue('id_category') :
                 (isset($obj->id_category)) ? $obj->id_category : (int)Configuration::get('PS_HOME_CATEGORY')),
-            'theme_name' => $obj->theme_name,
+            'theme_name' => $theme_name,
         );
 
         $ids_category = array();
@@ -657,7 +672,7 @@ class AdminShopControllerCore extends AdminController
             $this->copyFromPost($object, $this->table);
             $this->beforeAdd($object);
             if (!$object->add()) {
-                $this->errors[] = Tools::displayError('An error occurred while creating an object.').
+                $this->errors[] = $this->trans('An error occurred while creating an object.', array(), 'Admin.Notifications.Error').
                     ' <b>'.$this->table.' ('.Db::getInstance()->getMsgError().')</b>';
             }
             /* voluntary do affectation here */
@@ -700,7 +715,7 @@ class AdminShopControllerCore extends AdminController
 
     public function displayEditLink($token = null, $id, $name = null)
     {
-        if ($this->tabAccess['edit'] == 1) {
+        if ($this->access('edit')) {
             $tpl = $this->createTemplate('helpers/list/list_action_edit.tpl');
             if (!array_key_exists('Edit', self::$cache_lang)) {
                 self::$cache_lang['Edit'] = $this->l('Edit', 'Helper');
@@ -766,7 +781,7 @@ class AdminShopControllerCore extends AdminController
             if (!isset($tree[$id_shop_group])) {
                 $tree[$id_shop_group] = array(
                     'data' => array(
-                        'title' => '<b>'.$this->l('Group').'</b> '.$row['group_name'],
+                        'title' => '<b>'.$this->trans('Group', array(), 'Admin.Global').'</b> '.$row['group_name'],
                         'icon' => 'themes/'.$this->context->employee->bo_theme.'/img/tree-multishop-groups.png',
                         'attr' => array(
                             'href' => $this->context->link->getAdminLink('AdminShop').'&id_shop_group='.$id_shop_group,

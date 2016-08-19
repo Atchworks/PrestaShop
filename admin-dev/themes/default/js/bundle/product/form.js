@@ -28,7 +28,6 @@ $(document).ready(function() {
   nav.init();
   featuresCollection.init();
   displayFormCategory.init();
-  nestedCategories.init();
   formCategory.init();
   stock.init();
   supplier.init();
@@ -55,6 +54,14 @@ $(document).ready(function() {
   /** Type product fields display management */
   $('#form_step1_type_product').change(function() {
     displayFieldsManager.refresh();
+  });
+
+  /* validate price fields , as Thomas de Nabord said */
+  $(".money-type input[type='text']").change(function validate(event) {
+    var inputValue = $(this).val();
+    var parsedValue = truncateDecimals(parseFloat(inputValue),6);
+
+    $(this).val(parsedValue);
   });
 
   /** Attach date picker */
@@ -133,7 +140,7 @@ var displayFieldsManager = (function() {
       }
 
       /** check quantity / combinations display */
-      if (showVariationsSelector.find('input:checked').val() === '1' || $('#accordion_combinations tr').length > 0) {
+      if (showVariationsSelector.find('input:checked').val() === '1' || $('#accordion_combinations tr:not(#loading-attribute)').length > 0) {
         combinationsBlock.show();
 
         $('#specific-price-combination-selector').removeClass('hide').show();
@@ -143,11 +150,6 @@ var displayFieldsManager = (function() {
         combinationsBlock.hide();
         $('#specific-price-combination-selector').hide();
         $('#product_qty_0_shortcut_div, #quantities').show();
-      }
-      if ($('#combinations_thead').next().children().length) {
-        $('#combinations_thead').show();
-      } else {
-        $('#combinations_thead').hide();
       }
 
       /** Tooltip for product type combinations */
@@ -179,7 +181,7 @@ var displayFieldsManager = (function() {
      * @param errorMessage
      */
     'checkAccessVariations': function() {
-      if ((showVariationsSelector.find('input:checked').val() === '1' || $('#accordion_combinations tr').length > 0) && (typeProduct.val() === '1' || typeProduct.val() === '2')) {
+      if ((showVariationsSelector.find('input:checked').val() === '1' || $('#accordion_combinations tr:not(#loading-attribute)').length > 0) && (typeProduct.val() === '1' || typeProduct.val() === '2')) {
         var typeOfProduct = this.getProductType();
         var errorMessage = "You can't create " + typeOfProduct + " product with variations. Are you sure to disable variations ? they will all be deleted.";
         modalConfirmation.create(translate_javascripts[errorMessage], null, {
@@ -203,31 +205,6 @@ var displayFieldsManager = (function() {
           }
         }).show();
       }
-    }
-  };
-})();
-
-/**
- * Nested categories management
- */
-var nestedCategories = (function() {
-  return {
-    'init': function() {
-      var nestedCategoriesForm = $('#form_step1_categories');
-      nestedCategoriesForm.categorytree();
-
-      // now we can select default category from nested Categories even if it's not related from a "code" point of view.
-      nestedCategoriesForm.find('input[type="radio"]').on('change', function updateDefaultCategory() {
-        var categoryId = $(this).val();
-        /* we can't select a default category if category is not selected
-         * that's why we check category first instead of warn user.
-         */
-        var category = nestedCategoriesForm.find('input[value="' + categoryId + '"].category');
-        if (category.is(':checked') === false) {
-          category.trigger('click');
-        }
-        defaultCategory.check(categoryId);
-      });
     }
   };
 })();
@@ -295,6 +272,14 @@ var formCategory = (function() {
 
         //inject new category in parent category selector
         $('#form_step1_new_category_id_parent').append('<option value="' + response.category.id + '">' + response.category.name[1] + '</option>');
+
+        // create label
+        var tag = {
+          'name': response.category.name[1],
+          'id': response.category.id,
+          'breadcrumb': ''
+        };
+        productCategoriesTags.createTag(tag);
       },
       error: function(response) {
         $.each(jQuery.parseJSON(response.responseText), function(key, errors) {
@@ -515,6 +500,10 @@ var nav = (function() {
 var specificPrices = (function() {
   var id_product = $('#form_id_product').val();
   var elem = $('#js-specific-price-list');
+  var leaveInitialPrice = $('#form_step2_specific_price_leave_bprice');
+  var productPriceField = $('#form_step2_specific_price_sp_price');
+  var discountTypeField = $('#form_step2_specific_price_sp_reduction_type');
+  var discountTaxField = $('#form_step2_specific_price_sp_reduction_tax');
 
   /** Get all specific prices */
   function getAll() {
@@ -583,7 +572,7 @@ var specificPrices = (function() {
    * @param {object} elem - The clicked link
    */
   function remove(elem) {
-    modalConfirmation.create(translate_javascripts['Are you sure to delete this?'], null, {
+    modalConfirmation.create(translate_javascripts['This will delete the specific price. Do you wish to proceed?'], null, {
       onContinue: function() {
         $.ajax({
           type: 'GET',
@@ -624,44 +613,74 @@ var specificPrices = (function() {
       }
     });
   }
+  
+  /**
+   * Because all "forms" are encapsulated in a global form, we just can't use reset button
+   * Reset all subform inputs values
+   */
+  function resetForm() {
+    $('#specific_price_form input').val('');
+  }
 
   return {
     'init': function() {
-      /** set the default price to for specific price form */
-      $('#form_step2_specific_price_sp_price').val($('#form_step2_price').val());
       this.getAll();
 
-      $('#specific-price .add').click(function() {
+      $('#specific-price .add').click(function () {
         $(this).hide();
       });
 
       $('#specific_price_form .js-cancel').click(function() {
+        resetForm();
+        $('#specific-price > a').click();
         $('#specific-price .add').click().show();
+        productPriceField.prop('disabled', true);
       });
 
-      $('#specific_price_form .js-save').click(function() {
+      $('#specific_price_form .js-save').click(function () {
         add($(this));
+        resetForm();
       });
 
-      $(document).on('click', '#js-specific-price-list .js-delete', function(e) {
+      $(document).on('click', '#js-specific-price-list .js-delete', function (e) {
         e.preventDefault();
         remove($(this));
       });
 
-      $('#form_step2_specific_price_sp_reduction_type').change(function() {
+      $('#form_step2_specific_price_sp_reduction_type').change(function () {
         if ($(this).val() === 'percentage') {
           $('#form_step2_specific_price_sp_reduction_tax').hide();
         } else {
           $('#form_step2_specific_price_sp_reduction_tax').show();
         }
       });
+
+      this.refreshCombinationsList();
+
+      /* enable price field only when needed */
+      leaveInitialPrice.on('click', function togglePriceField() {
+        productPriceField.prop('disabled', $(this).is(':checked'))
+          .val('')
+        ;
+      });
+
+      /* enable tax type field only when reduction by amount is selected */
+      discountTypeField.on('change', function toggleDiscountTaxField() {
+        var uglySelect2Selector = $('#select2-form_step2_specific_price_sp_reduction_tax-container').parent().parent();
+        if ($(this).val() === 'amount') {
+          uglySelect2Selector.show();
+        }else {
+          uglySelect2Selector.hide();
+        }
+      });
+
     },
     'getAll': function() {
       getAll();
     },
     'refreshCombinationsList': function() {
       refreshCombinationsList();
-    }
+    },
   };
 })();
 
@@ -727,7 +746,14 @@ var form = (function() {
     if (typeof(target) == 'undefined') {
       target = false;
     }
+    seo.onSave();
+    updateMissingTranslatedNames();
+
     var data = $('input, textarea, select', elem).not(':input[type=button], :input[type=submit], :input[type=reset]').serialize();
+    if (target == '_blank' && redirect) {
+      var openBlank = window.open('about:blank', target, '');
+    }
+
     $.ajax({
       type: 'POST',
       data: data,
@@ -740,7 +766,11 @@ var form = (function() {
       success: function(response) {
         if (redirect) {
           if (target) {
-            window.open(redirect, target);
+            if (target == '_blank') {
+                openBlank.location = redirect;
+            } else {
+                window.open(redirect, target);
+            }
           } else {
             window.location = redirect;
           }
@@ -785,6 +815,20 @@ var form = (function() {
   function switchLanguage(iso_code) {
     $('div.translations.tabbable > div > div.tab-pane:not(.translation-label-' + iso_code + ')').removeClass('active');
     $('div.translations.tabbable > div > div.tab-pane.translation-label-' + iso_code).addClass('active');
+  }
+
+  function updateMissingTranslatedNames() {
+      var namesDiv = $('#form_step1_names');
+      var defaultLanguageValue = null;
+      $("input[id^='form_step1_name_']", namesDiv).each(function(index) {
+          var value = $(this).val();
+          // The first language is ALWAYS the employee language
+          if (0 === index) {
+              defaultLanguageValue = value;
+          } else if (0 === value.length) {
+              $(this).val(defaultLanguageValue);
+          }
+      });
   }
 
   return {
@@ -920,56 +964,8 @@ var form = (function() {
           $('#form_step3_attributes').on('tokenfield:removedtoken', function(e) {
             $('#attribute-generator-' + e.attrs.value).remove();
           });
-
-          $('#create-combinations').click(function() {
-            generate();
-          });
         });
         imagesProduct.expander();
-
-        /** Generate combinations */
-        function generate() {
-          /**
-           * Combination row maker
-           * @param {object} attribute
-           */
-          var combinationRowMaker = function(form) {
-            var combinationsLength = $('#accordion_combinations').children().length;
-            var newForm = form.replace(/product_combination\[/g, 'form[step3][combinations][' + combinationsLength + '][')
-              .replace(/id="product_combination_/g, 'id="form_step3_combinations_' + combinationsLength + '_')
-              .replace(/__loop_index__/g, combinationsLength);
-
-            $('#accordion_combinations').prepend(newForm);
-            displayFieldsManager.refresh();
-            combinations.refreshImagesCombination();
-          };
-
-          $.ajax({
-            type: 'POST',
-            url: $('#form_step3_attributes').attr('data-action'),
-            data: $('#attributes-generator input.attribute-generator, #form_id_product').serialize(),
-            beforeSend: function() {
-              $('#create-combinations').attr('disabled', 'disabled');
-            },
-            success: function(response) {
-              $.each(response, function(key, val) {
-                combinationRowMaker(val);
-              });
-
-              /** initialize form */
-              $('input.attribute-generator').remove();
-              $('#attributes-generator div.token').remove();
-              $('.js-attribute-checkbox:checked').each(function() {
-                $(this).prop('checked', false);
-              });
-            },
-            complete: function() {
-              $('#create-combinations').removeAttr('disabled');
-              supplierCombinations.refresh();
-              warehouseCombinations.refresh();
-            }
-          });
-        }
       });
     },
     'send': function() {
@@ -1046,6 +1042,22 @@ var virtualProduct = (function() {
               $('#form_step3_virtual_product_nb_days').val(0);
             }
           });
+        }
+      });
+
+      $('#form_step3_virtual_product_file').change(function(e) {
+        if ($(this)[0].files !== undefined) {
+          var files = $(this)[0].files;
+          var name  = '';
+
+          $.each(files, function(index, value) {
+            name += value.name + ', ';
+          });
+          $('#form_step3_virtual_product_name').val(name.slice(0, -2));
+        } else {
+          // Internet Explorer 9 Compatibility
+          var name = $(this).val().split(/[\\/]/);
+          $('#form_step3_virtual_product_name').val(name[name.length - 1]);
         }
       });
 
@@ -1214,6 +1226,18 @@ var attachmentProduct = (function() {
 var imagesProduct = (function() {
   var id_product = $('#form_id_product').val();
 
+  function checkDropzoneMode() {
+      var dropZoneElem = $('#product-images-dropzone');
+
+      if (!dropZoneElem.find('.dz-preview:not(.openfilemanager)').length) {
+        dropZoneElem.removeClass('dz-started');
+        dropZoneElem.find('.dz-preview.openfilemanager').hide();
+      }
+      else {
+          dropZoneElem.find('.dz-preview.openfilemanager').show();
+      }
+  };
+
   return {
     'expander': function() {
       var closedHeight = $('#product-images-dropzone').outerHeight();
@@ -1228,7 +1252,7 @@ var imagesProduct = (function() {
           $('#product-images-dropzone').css('height', 'auto');
           $('#product-images-container .dropzone-expander').removeClass('expand').addClass('compress');
         } else {
-          $('#product-images-dropzone').css('height', closedHeight + 'px');
+          $('#product-images-dropzone').css('height', '');
           $('#product-images-container .dropzone-expander').removeClass('compress').addClass('expand');
         }
       });
@@ -1251,19 +1275,20 @@ var imagesProduct = (function() {
         paramName: 'form[file]',
         maxFilesize: dropZoneElem.attr('data-max-size'),
         addRemoveLinks: true,
-        clickable: true,
-        thumbnailWidth: 130,
+        clickable: '.openfilemanager',
+        thumbnailWidth: 250,
         thumbnailHeight: null,
         acceptedFiles: 'image/*',
-        dictDefaultMessage: '<i class="material-icons">perm_media</i><br/>' + translate_javascripts['Drop images here'] + '<br/>' + translate_javascripts['or select files'] + '<br/><small>' + translate_javascripts['files recommandations'] + '<br/>' + translate_javascripts['files recommandations2'] + '</small></div>',
         dictRemoveFile: translate_javascripts['Delete'],
         dictFileTooBig: translate_javascripts['ToLargeFile'],
         dictCancelUpload: translate_javascripts['Delete'],
         sending: function(file, response) {
+          checkDropzoneMode();
           $('#product-images-container .dropzone-expander').addClass('expand').click();
           errorElem.html('');
         },
         queuecomplete: function() {
+          checkDropzoneMode();
           dropZoneElem.sortable('enable');
         },
         processing: function() {
@@ -1283,12 +1308,12 @@ var imagesProduct = (function() {
           if (response.cover === 1) {
             imagesProduct.updateDisplayCover(response.id);
           }
-
-          combinations.refreshImagesCombination();
         },
         error: function(file, response) {
           var message = '';
-          if ($.type(response) === 'string') {
+          if ($.type(response) === 'undefined') {
+            return;
+          } else if ($.type(response) === 'string') {
             message = response;
           } else if (response.message) {
             message = response.message;
@@ -1306,13 +1331,11 @@ var imagesProduct = (function() {
         },
         init: function() {
           //if already images uploaded, mask drop file message
-          if (dropZoneElem.find('.dz-preview').length) {
+          if (dropZoneElem.find('.dz-preview:not(.openfilemanager)').length) {
             dropZoneElem.addClass('dz-started');
+          } else {
+            dropZoneElem.find('.dz-preview.openfilemanager').hide();
           }
-
-          dropZoneElem.find('.openfilemanager').click(function() {
-            dropZoneElem.click();
-          });
 
           //init sortable
           dropZoneElem.sortable({
@@ -1364,6 +1387,9 @@ var imagesProduct = (function() {
       $('#product-images-dropzone .dz-preview .iscover').remove();
       $('#product-images-dropzone .dz-preview[data-id="' + id_image + '"]')
         .append('<div class="iscover">' + translate_javascripts['Cover'] + '</div>');
+    },
+    'checkDropzoneMode': function() {
+      checkDropzoneMode();
     }
   };
 })();
@@ -1378,14 +1404,27 @@ var formImagesProduct = (function() {
     type: 'image'
   });
 
+  function toggleColDropzone(enlarge) {
+      var smallCol = "col-md-8";
+      var largeCol = "col-md-12";
+      if (true === enlarge) {
+          dropZoneElem.removeClass(smallCol).addClass(largeCol);
+      } else {
+          dropZoneElem.removeClass(largeCol).addClass(smallCol);
+      }
+  }
+
   return {
     'form': function(id) {
+      dropZoneElem.find(".dz-preview.active").removeClass("active");
+      dropZoneElem.find(".dz-preview[data-id='"+id+"']").addClass("active");
       $.ajax({
         url: dropZoneElem.attr('url-update') + '/' + id,
         success: function(response) {
           formZoneElem.find('#product-images-form').html(response);
         },
         complete: function() {
+          toggleColDropzone(false);
           formZoneElem.show();
         }
       });
@@ -1394,7 +1433,7 @@ var formImagesProduct = (function() {
       $.ajax({
         type: 'POST',
         url: dropZoneElem.attr('url-update') + '/' + id,
-        data: formZoneElem.find('input').serialize(),
+        data: formZoneElem.find('textarea').serialize(),
         beforeSend: function() {
           formZoneElem.find('.actions button').prop('disabled', 'disabled');
           formZoneElem.find('ul.text-danger').remove();
@@ -1432,15 +1471,17 @@ var formImagesProduct = (function() {
             complete: function() {
               formZoneElem.find('.close').click();
               dropZoneElem.find('.dz-preview[data-id="' + id + '"]').remove();
-              combinations.refreshImagesCombination();
+              imagesProduct.checkDropzoneMode();
             }
           });
         }
       }).show();
     },
     'close': function() {
+      toggleColDropzone(true);
       formZoneElem.find('#product-images-form').html('');
       formZoneElem.hide();
+      dropZoneElem.find(".dz-preview.active").removeClass("active");
     }
   };
 })();
@@ -1467,10 +1508,11 @@ var priceCalculation = (function() {
    */
   function addTaxes(price, rates, computation_method) {
     var price_with_taxes = price;
+
     var i = 0;
     if (computation_method === '0') {
       for (i in rates) {
-        price_with_taxes *= (1 + rates[i] / 100);
+        price_with_taxes *= (1.00 + parseFloat(rates[i]) / 100.00);
         break;
       }
     } else if (computation_method === '1') {
@@ -1478,10 +1520,10 @@ var priceCalculation = (function() {
       for (i in rates) {
         rate += rates[i];
       }
-      price_with_taxes *= (1 + rate / 100);
+      price_with_taxes *= (1.00 + parseFloat(rate) / 100.00);
     } else if (computation_method === '2') {
       for (i in rates) {
-        price_with_taxes *= (1 + rates[i] / 100);
+        price_with_taxes *= (1.00 + parseFloat(rates[i]) / 100.00);
       }
     }
 
@@ -1517,12 +1559,17 @@ var priceCalculation = (function() {
   }
 
   function getEcotaxTaxIncluded() {
-    var ecotax_tax_excl = ecoTaxElem.val() / (1 + ecoTaxRate);
-    return ps_round(ecotax_tax_excl * (1 + ecoTaxRate), 2);
+    var displayPrecision = 6;
+    if ( ecoTaxElem.val() == 0) {
+      return ecoTaxElem.val();
+    }
+    var ecotax_tax_excl = ecoTaxElem.val().replace(/,/g, '.') / (1 + ecoTaxRate);
+
+    return ps_round(ecotax_tax_excl * (1 + ecoTaxRate), displayPrecision);
   }
 
   function getEcotaxTaxExcluded() {
-    return ecoTaxElem.val() / (1 + ecoTaxRate);
+    return ecoTaxElem.val().replace(/,/g, '.') / (1 + ecoTaxRate);
   }
 
   return {
@@ -1575,12 +1622,12 @@ var priceCalculation = (function() {
       });
 
       /** combinations : update TTC price field on change */
-      $('.combination-form .attribute_priceTE').keyup(function() {
+      $(document).on('keyup', '.combination-form .attribute_priceTE', function() {
         priceCalculation.impactTaxInclude($(this));
         priceCalculation.impactFinalPrice($(this));
       });
       /** combinations : update HT price field on change */
-      $('.combination-form .attribute_priceTI').keyup(function() {
+      $(document).on('keyup', '.combination-form .attribute_priceTI', function() {
         priceCalculation.impactTaxExclude($(this));
       });
 
@@ -1589,14 +1636,15 @@ var priceCalculation = (function() {
       $('#form_step2_price, #form_step2_price_ttc').change();
     },
     'taxInclude': function() {
-      var price = parseFloat(priceHTElem.val().replace(/,/g, '.'));
+      var price = priceHTElem.val().replace(/,/g, '.');
       if (isNaN(price)) {
         price = 0;
       }
 
       var rates = taxElem.find('option:selected').attr('data-rates').split(',');
       var computation_method = taxElem.find('option:selected').attr('data-computation-method');
-      var newPrice = ps_round(addTaxes(price, rates, computation_method), displayPricePrecision) + getEcotaxTaxIncluded();
+      var newPrice = new Number(ps_round(addTaxes(price, rates, computation_method), displayPricePrecision)) + new Number(getEcotaxTaxIncluded());
+      newPrice = truncateDecimals(newPrice, 6);
 
       priceTTCElem.val(newPrice);
       priceTTCShorcutElem.val(newPrice);
@@ -1610,6 +1658,7 @@ var priceCalculation = (function() {
       var rates = taxElem.find('option:selected').attr('data-rates').split(',');
       var computation_method = taxElem.find('option:selected').attr('data-computation-method');
       var newPrice = ps_round(removeTaxes(ps_round(price - getEcotaxTaxIncluded(), displayPricePrecision), rates, computation_method), displayPricePrecision);
+      newPrice = truncateDecimals(newPrice, 6);
 
       priceHTElem.val(newPrice);
       priceHTShortcutElem.val(newPrice);
@@ -1623,7 +1672,8 @@ var priceCalculation = (function() {
       }
       var rates = taxElem.find('option:selected').attr('data-rates').split(',');
       var computation_method = taxElem.find('option:selected').attr('data-computation-method');
-      var newPrice = ps_round(addTaxes(price, rates, computation_method));
+      var newPrice = ps_round(addTaxes(price, rates, computation_method), 6);
+      newPrice = truncateDecimals(newPrice, 6);
 
       targetInput.val(newPrice);
     },
@@ -1632,8 +1682,9 @@ var priceCalculation = (function() {
       var finalPrice = obj.closest('div[id^="combination_form_"]').find('.final-price');
       var defaultFinalPrice = finalPrice.attr('data-price');
       var priceToBeChanged = new Number(price) + new Number(defaultFinalPrice);
+      priceToBeChanged = truncateDecimals(priceToBeChanged, 6);
 
-      finalPrice.html(priceToBeChanged.toFixed(2));
+      finalPrice.html(priceToBeChanged);
     },
     'impactTaxExclude': function(obj) {
       var price = parseFloat(obj.val().replace(/,/g, '.'));
@@ -1644,7 +1695,8 @@ var priceCalculation = (function() {
       }
       var rates = taxElem.find('option:selected').attr('data-rates').split(',');
       var computation_method = taxElem.find('option:selected').attr('data-computation-method');
-      var newPrice = ps_round(removeTaxes(ps_round(price, displayPricePrecision), rates, computation_method), displayPricePrecision);
+      var newPrice = removeTaxes(ps_round(price, displayPricePrecision), rates, computation_method);
+      newPrice = truncateDecimals(newPrice, 6);
 
       targetInput.val(newPrice);
     }
@@ -1665,6 +1717,14 @@ var seo = (function() {
       $('#id-product-redirected').show();
     }
   }
+    /** Update friendly URL */
+    var updateFriendlyUrl = function(elem) {
+        /** Attr name equals "form[step1][name][1]".
+         * We need in this string the second integer */
+        var id_lang = elem.attr('name').match(/\d+/g)[1];
+        $('#form_step5_link_rewrite_' + id_lang).val(str2url(elem.val(), 'UTF-8'));
+    };
+
 
   return {
     'init': function() {
@@ -1675,14 +1735,6 @@ var seo = (function() {
       redirectTypeElem.change(function() {
         hideShowRedirectToProduct();
       });
-
-      /** Update friendly URL */
-      var updateFriendlyUrl = function(elem) {
-        /** Attr name equals "form[step1][name][1]".
-         * We need in this string the second integer */
-        var id_lang = elem.attr('name').match(/\d+/g)[1];
-        $('#form_step5_link_rewrite_' + id_lang).val(str2url(elem.val(), 'UTF-8'));
-      };
 
       /** On product title change, update friendly URL*/
       $('#form_step1_names.friendly-url-force-update input').keyup(function() {
@@ -1695,6 +1747,16 @@ var seo = (function() {
           updateFriendlyUrl($(this));
         });
       });
+    },
+    'onSave': function() {
+        // check all friendly URLs have been filled. If not, fill them.
+        $('input[id^="form_step5_link_rewrite_"]', "#form_step5_link_rewrite").each(function(){
+            var elem = $(this);
+            if (0 === elem.val().length) {
+                var id_lang = elem.attr('name').match(/\d+/g)[1];
+                updateFriendlyUrl($('#form_step1_name_' + id_lang));
+            }
+        });
     }
   };
 })();

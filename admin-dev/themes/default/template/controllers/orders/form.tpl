@@ -351,7 +351,7 @@
 				id_product: id_product,
 				id_product_attribute: id_product_attribute,
 				id_customer: id_customer,
-				price: new Number(new_price.replace(",",".")).toFixed(4).toString()
+				price: ps_round(new Number(new_price.replace(",",".")), 6).toString()
 				},
 			success : function(res)
 			{
@@ -774,7 +774,7 @@
 				else
 					var value = this.value_real;
 
-				vouchers_html += '<tr><td>'+this.name+'</td><td>'+this.description+'</td><td>'+value+'</td><td class="text-right"><a href="#" class="btn btn-default delete_discount" rel="'+this.id_discount+'"><i class="icon-remove text-danger"></i>&nbsp;{l s='Delete'}</a></td></tr>';
+				vouchers_html += '<tr><td>'+this.name+'</td><td>'+this.description+'</td><td>'+value+'</td><td class="text-right"><a href="#" class="btn btn-default delete_discount" rel="'+this.id_discount+'"><i class="icon-remove text-danger"></i>&nbsp;{l s='Delete' d='Admin.Actions'}</a></td></tr>';
 			});
 		$('#voucher_list tbody').html($.trim(vouchers_html));
 		if ($('#voucher_list tbody').html().length == 0)
@@ -1093,7 +1093,7 @@
 	<div class="panel form-horizontal" id="customer_part">
 		<div class="panel-heading">
 			<i class="icon-user"></i>
-			{l s='Customer'}
+			{l s='Customer' d='Admin.Global'}
 		</div>
 		<div id="search-customer-form-group" class="form-group">
 			<label class="control-label col-lg-3">
@@ -1148,7 +1148,7 @@
 					<table class="table">
 						<thead>
 							<tr>
-								<th><span class="title_box">{l s='ID'}</span></th>
+								<th><span class="title_box">{l s='ID' d='Admin.Global'}</span></th>
 								<th><span class="title_box">{l s='Date'}</span></th>
 								<th><span class="title_box">{l s='Total'}</span></th>
 								<th></th>
@@ -1162,7 +1162,7 @@
 					<table class="table">
 						<thead>
 							<tr>
-								<th><span class="title_box">{l s='ID'}</span></th>
+								<th><span class="title_box">{l s='ID' d='Admin.Global'}</span></th>
 								<th><span class="title_box">{l s='Date'}</span></th>
 								<th><span class="title_box">{l s='Products'}</span></th>
 								<th><span class="title_box">{l s='Total paid'}</span></th>
@@ -1252,11 +1252,11 @@
 					<thead>
 						<tr>
 							<th><span class="title_box">{l s='Product'}</span></th>
-							<th><span class="title_box">{l s='Description'}</span></th>
-							<th><span class="title_box">{l s='Reference'}</span></th>
+							<th><span class="title_box">{l s='Description' d='Admin.Global'}</span></th>
+							<th><span class="title_box">{l s='Reference' d='Admin.Global'}</span></th>
 							<th><span class="title_box">{l s='Unit price'}</span></th>
 							<th><span class="title_box">{l s='Quantity'}</span></th>
-							<th><span class="title_box">{l s='Price'}</span></th>
+							<th><span class="title_box">{l s='Price' d='Admin.Global'}</span></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -1335,8 +1335,8 @@
 			<table class="table" id="voucher_list">
 				<thead>
 					<tr>
-						<th><span class="title_box">{l s='Name'}</span></th>
-						<th><span class="title_box">{l s='Description'}</span></th>
+						<th><span class="title_box">{l s='Name' d='Admin.Global'}</span></th>
+						<th><span class="title_box">{l s='Description' d='Admin.Global'}</span></th>
 						<th><span class="title_box">{l s='Value'}</span></th>
 						<th></th>
 					</tr>
@@ -1365,7 +1365,7 @@
 					<select id="id_address_delivery" name="id_address_delivery"></select>
 				</div>
 				<div class="well">
-					<a href="" id="edit_delivery_address" class="btn btn-default pull-right fancybox"><i class="icon-pencil"></i> {l s='Edit'}</a>
+					<a href="" id="edit_delivery_address" class="btn btn-default pull-right fancybox"><i class="icon-pencil"></i> {l s='Edit' d='Admin.Actions'}</a>
 					<div id="address_delivery_detail"></div>
 				</div>
 			</div>
@@ -1378,7 +1378,7 @@
 					<select id="id_address_invoice" name="id_address_invoice"></select>
 				</div>
 				<div class="well">
-					<a href="" id="edit_invoice_address" class="btn btn-default pull-right fancybox"><i class="icon-pencil"></i> {l s='Edit'}</a>
+					<a href="" id="edit_invoice_address" class="btn btn-default pull-right fancybox"><i class="icon-pencil"></i> {l s='Edit' d='Admin.Actions'}</a>
 					<div id="address_invoice_detail"></div>
 				</div>
 			</div>
@@ -1424,11 +1424,11 @@
 					<span class="switch prestashop-switch">
 						<input type="radio" name="free_shipping" id="free_shipping" value="1">
 						<label for="free_shipping" class="radioCheck">
-							{l s='yes'}
+							{l s='yes' d='Admin.Global'}
 						</label>
 						<input type="radio" name="free_shipping" id="free_shipping_off" value="0" checked="checked">
 						<label for="free_shipping_off" class="radioCheck">
-							{l s='No'}
+							{l s='No' d='Admin.Global'}
 						</label>
 						<a class="slide-button btn"></a>
 					</span>

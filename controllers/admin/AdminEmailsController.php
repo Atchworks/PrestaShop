@@ -43,6 +43,8 @@ class AdminEmailsControllerCore extends AdminController
             $this->explicitSelect = true;
             $this->addRowAction('delete');
 
+            parent::__construct();
+
             $this->bulk_actions = array(
                 'delete' => array(
                     'text' => $this->l('Delete selected'),
@@ -56,7 +58,7 @@ class AdminEmailsControllerCore extends AdminController
             }
 
             $this->fields_list = array(
-                'id_mail' => array('title' => $this->l('ID'), 'align' => 'center', 'class' => 'fixed-width-xs'),
+                'id_mail' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'align' => 'center', 'class' => 'fixed-width-xs'),
                 'recipient' => array('title' => $this->l('Recipient')),
                 'template' => array('title' => $this->l('Template')),
                 'language' => array(
@@ -79,15 +81,13 @@ class AdminEmailsControllerCore extends AdminController
             $this->_use_found_rows = false;
         }
 
-        parent::__construct();
-
         foreach (Contact::getContacts($this->context->language->id) as $contact) {
             $arr[] = array('email_message' => $contact['id_contact'], 'name' => $contact['name']);
         }
 
         $this->fields_options = array(
             'email' => array(
-                'title' => $this->l('Email'),
+                'title' => $this->trans('Email', array(), 'Admin.Global'),
                 'icon' => 'icon-envelope',
                 'fields' =>    array(
                     'PS_MAIL_EMAIL_MESSAGE' => array(
@@ -127,10 +127,10 @@ class AdminEmailsControllerCore extends AdminController
                         'type' => 'bool'
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'smtp' => array(
-                'title' => $this->l('Email'),
+                'title' => $this->trans('Email', array(), 'Admin.Global'),
                 'fields' =>    array(
                     'PS_MAIL_DOMAIN' => array(
                         'title' => $this->l('Mail domain name'),
@@ -189,7 +189,7 @@ class AdminEmailsControllerCore extends AdminController
                         'class' => 'fixed-width-sm'
                     ),
                 ),
-                'submit' => array('title' => $this->l('Save'))
+                'submit' => array('title' => $this->trans('Save', array(), 'Admin.Actions'))
             ),
             'test' => array(
                 'title' =>    $this->l('Test your email configuration'),
@@ -304,7 +304,7 @@ class AdminEmailsControllerCore extends AdminController
     {
         /* PrestaShop demo mode */
         if (_PS_MODE_DEMO_) {
-            $this->errors[] = Tools::displayError('This functionality has been disabled.');
+            $this->errors[] = $this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error');
             return;
         }
         /* PrestaShop demo mode*/
@@ -316,7 +316,7 @@ class AdminEmailsControllerCore extends AdminController
 
         if (isset($_POST['PS_MAIL_METHOD']) && $_POST['PS_MAIL_METHOD'] == 2
             && (empty($_POST['PS_MAIL_SERVER']) || empty($_POST['PS_MAIL_SMTP_PORT']))) {
-            $this->errors[] = Tools::displayError('You must define an SMTP server and an SMTP port. If you do not know it, use the PHP mail() function instead.');
+            $this->errors[] = $this->trans('You must define an SMTP server and an SMTP port. If you do not know it, use the PHP mail() function instead.', array(), 'Admin.Parameters.Notification');
         }
     }
 
@@ -324,10 +324,10 @@ class AdminEmailsControllerCore extends AdminController
     {
         /* PrestaShop demo mode */
         if (_PS_MODE_DEMO_) {
-            die(Tools::displayError('This functionality has been disabled.'));
+            die($this->trans('This functionality has been disabled.', array(), 'Admin.Notifications.Error'));
         }
         /* PrestaShop demo mode */
-        if ($this->tabAccess['view'] === '1') {
+        if ($this->access('view')) {
             $smtpChecked = (trim(Tools::getValue('mailMethod')) == 'smtp');
             $smtpServer = Tools::getValue('smtpSrv');
             $content = urldecode(Tools::getValue('testMsg'));
