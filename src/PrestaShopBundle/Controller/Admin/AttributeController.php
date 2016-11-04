@@ -52,7 +52,7 @@ class AttributeController extends FrameworkBundleAdminController
             /** Construct attribute group selector. Ex : Color : All */
             $dataGroupAttributes[$attribute['id_attribute_group']] = [
                 'value' => 'group-'.$attribute['id_attribute_group'],
-                'label' => $attribute['public_name'].' : '.$translator->trans('All', [], 'Admin.Global'),
+                'label' => $attribute['public_name'].' : '.$translator->trans('All', array(), 'Admin.Global'),
                 'data' => [
                     'id_group' => $attribute['id_attribute_group'],
                     'name' => $attribute['public_name'],
@@ -132,13 +132,8 @@ class AttributeController extends FrameworkBundleAdminController
         //get new created combinations Ids
         $newCombinationIds = array_diff($allCombinationsIds, $existingCombinationsIds);
 
-        $attributes = [];
-        foreach ($newCombinationIds as $combinationId) {
-            $attributeCombination = $product->getAttributeCombinationsById($combinationId, $locales[0]['id_lang']);
-            $attributes[$attributeCombination[0]["position"]][$combinationId] = $attributeCombination[0];
-        }
-
-        ksort($attributes);
+        $attributes = $product->sortCombinationByAttributePosition($newCombinationIds, $locales[0]['id_lang']);
+        $this->ensureProductHasDefaultCombination($product, $attributes);
 
         $response = new JsonResponse();
         $combinationDataProvider = $this->get('prestashop.adapter.data_provider.combination');
@@ -169,6 +164,21 @@ class AttributeController extends FrameworkBundleAdminController
     }
 
     /**
+     * @param \ProductCore $product
+     * @param array $combinations
+     */
+    public function ensureProductHasDefaultCombination(\ProductCore $product, array $combinations)
+    {
+        if (count($combinations)) {
+            $defaultProductAttributeId = $product->getDefaultIdProductAttribute();
+            if (!$defaultProductAttributeId) {
+                list(, $firstAttributeCombination) = each($combinations[0]);
+                $product->setDefaultAttribute($firstAttributeCombination['id_product_attribute']);
+            }
+        }
+    }
+
+    /**
      * Delete a product attribute
      *
      * @param int $idProduct The product ID
@@ -178,7 +188,6 @@ class AttributeController extends FrameworkBundleAdminController
      */
     public function deleteAttributeAction($idProduct, Request $request)
     {
-        $translator = $this->container->get('translator');
         $response = new JsonResponse();
 
         if (!$request->isXmlHttpRequest()) {
@@ -196,7 +205,7 @@ class AttributeController extends FrameworkBundleAdminController
                 $response->setStatusCode(400);
             }
 
-            $response->setData(['message' => $translator->trans($legacyResponse['message'], [], 'AdminProducts')]);
+            $response->setData(['message' => $legacyResponse['message']]);
         }
 
 
@@ -213,7 +222,6 @@ class AttributeController extends FrameworkBundleAdminController
      */
     public function deleteAllAttributeAction($idProduct, Request $request)
     {
-        $translator = $this->container->get('translator');
         $attributeAdapter = $this->container->get('prestashop.adapter.data_provider.attribute');
         $response = new JsonResponse();
 
@@ -234,7 +242,7 @@ class AttributeController extends FrameworkBundleAdminController
             }
         }
 
-        $response->setData(['message' => $translator->trans($res['message'], [], 'AdminProducts')]);
+        $response->setData(['message' => $res['message']]);
 
         return $response;
     }

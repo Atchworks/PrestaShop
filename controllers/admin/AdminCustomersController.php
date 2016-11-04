@@ -40,7 +40,6 @@ class AdminCustomersControllerCore extends AdminController
     {
         $this->bootstrap = true;
         $this->required_database = true;
-        $this->required_fields = array('optin');
         $this->table = 'customer';
         $this->className = 'Customer';
         $this->lang = false;
@@ -50,6 +49,13 @@ class AdminCustomersControllerCore extends AdminController
         $this->allow_export = true;
 
         parent::__construct();
+
+        $this->required_fields = array(
+            array(
+                'name' => 'optin',
+                'label' => $this->trans('Partner offers', array(), 'Admin.OrdersCustomers.Feature')
+            ),
+        );
 
         $this->addRowAction('edit');
         $this->addRowAction('view');
@@ -126,16 +132,12 @@ class AdminCustomersControllerCore extends AdminController
             'newsletter' => array(
                 'title' => $this->trans('Newsletter', array(), 'Admin.Global'),
                 'align' => 'text-center',
-                'type' => 'bool',
                 'callback' => 'printNewsIcon',
-                'orderby' => false
             ),
             'optin' => array(
                 'title' => $this->trans('Partner offers', array(), 'Admin.OrdersCustomers.Feature'),
                 'align' => 'text-center',
-                'type' => 'bool',
                 'callback' => 'printOptinIcon',
-                'orderby' => false
             ),
             'date_add' => array(
                 'title' => $this->trans('Registration', array(), 'Admin.OrdersCustomers.Feature'),
@@ -890,7 +892,7 @@ class AdminCustomersControllerCore extends AdminController
             return $customer;
         } elseif (trim(Tools::getValue('passwd')) == '') {
             $this->validateRules();
-            $this->errors[] = $this->trans('Password can not be empty.', array(), 'Admin.OrdersCustomers.Notification');
+            $this->errors[] = $this->trans('Password cannot be empty.', array(), 'Admin.OrdersCustomers.Notification');
             $this->display = 'edit';
         } elseif ($customer = parent::processAdd()) {
             $this->context->smarty->assign('new_customer', $customer);

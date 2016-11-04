@@ -486,18 +486,18 @@ abstract class ControllerCore
         if (!is_array($name)) {
             $name = array($name);
         }
-        if (is_array($name)) {
-            foreach ($name as $plugin) {
-                $plugin_path = Media::getJqueryPluginPath($plugin, $folder);
 
-                if (!empty($plugin_path['js'])) {
-                    $this->addJS($plugin_path['js'], false);
-                }
-                if ($css && !empty($plugin_path['css'])) {
-                    $this->addCSS(key($plugin_path['css']), 'all', null, false);
-                }
+        foreach ($name as $plugin) {
+            $plugin_path = Media::getJqueryPluginPath($plugin, $folder);
+
+            if (!empty($plugin_path['js'])) {
+                $this->addJS($plugin_path['js'], false);
+            }
+            if ($css && !empty($plugin_path['css'])) {
+                $this->addCSS(key($plugin_path['css']), 'all', null, false);
             }
         }
+
     }
 
     /**
@@ -541,40 +541,7 @@ abstract class ControllerCore
             $html = $this->context->smarty->fetch($content, null, $this->getLayout());
         }
 
-        if ($this->controller_type === 'modulefront') {
-            // Modules do not know about the layout system,
-            // let's inject their output inside the front-end layout.
-            $this->context->smarty->assign('content', $html);
-            $html = $this->context->smarty->fetch('wrapper.tpl');
-        }
-
-        $html = trim($html);
-
-        if (in_array($this->controller_type, array('front', 'modulefront')) && !empty($html) && $this->getLayout()) {
-            $dom_available = extension_loaded('dom') ? true : false;
-            $defer = (bool)Configuration::get('PS_JS_DEFER');
-
-            if ($defer && $dom_available) {
-                $html = Media::deferInlineScripts($html);
-            }
-            $html = trim(str_replace(array('</body>', '</html>'), '', $html))."\n";
-
-            $this->context->smarty->assign(array(
-                $js_tag => Media::getJsDef(),
-                'js_files' =>  $defer ? array_unique($this->js_files) : array(),
-                'js_inline' => ($defer && $dom_available) ? Media::getInlineScript() : array()
-            ));
-
-            $javascript = $this->context->smarty->fetch(_PS_ALL_THEMES_DIR_.'javascript.tpl');
-
-            if ($defer) {
-                echo $html.$javascript.(empty($this->ajax) ? '</body></html>' : '');
-            } else {
-                echo preg_replace('/(?<!\$)'.$js_tag.'/', $javascript, $html).(empty($this->ajax) ? '</body></html>' : '');
-            }
-        } else {
-            echo $html;
-        }
+        echo trim($html);
     }
 
     /**

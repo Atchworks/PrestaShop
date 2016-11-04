@@ -1,43 +1,53 @@
 import $ from 'jquery';
 
-export default function () {
-    $('.reset-translation-value').each((buttonIndex, button) => {
-        let editTranslationForm = $(button).parents('form');
-        let defaultTranslationValue = editTranslationForm.find('*[name=default]').val();
+export default function (search) {
+  $('.reset-translation-value').each((buttonIndex, button) => {
+    let $editTranslationForm = $(button).parents('form');
+    let defaultTranslationValue = $editTranslationForm.find('*[name=default]').val();
 
-        $(button).click(() => {
-            editTranslationForm.find('*[name=translation_value]').val(defaultTranslationValue);
-            editTranslationForm.submit();
-        });
+    $(button).click(() => {
+      $editTranslationForm.find('*[name=translation_value]').val(defaultTranslationValue);
+      $editTranslationForm.submit();
     });
+  });
 
-    let showFlashMessageOnEdit = (form) => {
-        $(form).submit((event) => {
-            let editTranslationForm = $(event.target);
-            let url = editTranslationForm.attr('action');
+  let showFlashMessageOnEdit = (form) => {
+    $(form).submit((event) => {
+      event.preventDefault();
 
-            $.post(url, editTranslationForm.serialize(), (response) => {
-                let flashMessage;
-                if (response['successful_update']) {
-                   flashMessage = editTranslationForm.find('.alert-info');
-                } else {
-                   flashMessage = editTranslationForm.find('.alert-danger');
-                }
+      let $editTranslationForm = $(event.target);
+      let url = $editTranslationForm.attr('action');
 
-                flashMessage.removeClass('hide');
+      $.post(url, $editTranslationForm.serialize(), (response) => {
+        let flashMessage;
+        if (response['successful_update']) {
+          flashMessage = $editTranslationForm.find('.alert-info');
 
-                setTimeout(() => {
-                  flashMessage.addClass('hide');
-                }, 4000);
-            });
+          // Propagate edition
+          let hash = $editTranslationForm.data('hash');
+          let $editTranslationForms = $('[data-hash=' + hash + ']');
+          let $translationValueFields = $($editTranslationForms.find('textarea'));
+          $translationValueFields.val($editTranslationForm.find('textarea').val());
 
-            event.preventDefault();
+          // Refresh search index
+          $editTranslationForms.removeAttr('data-jets');
+          search.update();
+        } else {
+          flashMessage = $editTranslationForm.find('.alert-danger');
+        }
 
-            return false;
-        })
-    };
+        flashMessage.removeClass('hide');
 
-    $('.search-translation form, .translation-domain form').each((formIndex, form) => {
-        showFlashMessageOnEdit(form);
-    });
+        setTimeout(() => {
+          flashMessage.addClass('hide');
+        }, 4000);
+      });
+
+      return false;
+    })
+  };
+
+  $('#jetsContent form, .translation-domain form').each((formIndex, form) => {
+    showFlashMessageOnEdit(form);
+  });
 }

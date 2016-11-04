@@ -47,21 +47,22 @@ if (is_dir(_PS_ROOT_DIR_.DIRECTORY_SEPARATOR.'admin-dev') && (!is_dir(_PS_ROOT_D
 }
 
 /* No settings file? goto installer... */
-if (!file_exists(_PS_ROOT_DIR_.'/app/config/parameters.yml')) {
-    if (file_exists($currentDir.'/../install')) {
-        header('Location: install/');
-    } elseif (file_exists($currentDir.'/../install-dev')) {
-        header('Location: install-dev/');
-    } else {
-        die('Error: "install" directory is missing');
-    }
-    exit;
+if (!file_exists(_PS_ROOT_DIR_.'/app/config/parameters.yml') && !file_exists(_PS_ROOT_DIR_.'/app/config/parameters.php')) {
+    Tools::redirectToInstall();
 }
 
 /* include settings file only if we are not in multi-tenancy mode */
 require_once(_PS_CONFIG_DIR_.'autoload.php');
 require_once $currentDir . DIRECTORY_SEPARATOR . 'bootstrap.php';
 
+if (defined('_PS_CREATION_DATE_')) {
+    $creationDate = _PS_CREATION_DATE_;
+    if (empty($creationDate)) {
+        Tools::redirectToInstall();
+    }
+} else {
+    Tools::redirectToInstall();
+}
 
 /* Custom config made by users */
 if (is_file(_PS_CUSTOM_CONFIG_FILE_)) {
@@ -114,6 +115,8 @@ try {
     $e->displayMessage();
 }
 define('_THEME_NAME_', $context->shop->theme->getName());
+define('_PARENT_THEME_NAME_', $context->shop->theme->get('parent') ?: '');
+
 define('__PS_BASE_URI__', $context->shop->getBaseURI());
 
 /* Include all defines related to base uri and theme name */
@@ -193,6 +196,10 @@ if (!isset($language) || !Validate::isLoadedObject($language)) {
 }
 $context->language = $language;
 
+/* Get smarty */
+require_once($currentDir.'/smarty.config.inc.php');
+$context->smarty = $smarty;
+
 if (!defined('_PS_ADMIN_DIR_')) {
     if (isset($cookie->id_customer) && (int)$cookie->id_customer) {
         $customer = new Customer($cookie->id_customer);
@@ -247,13 +254,3 @@ define('_PS_OS_COD_VALIDATION_', Configuration::get('PS_OS_COD_VALIDATION'));
 if (!defined('_MEDIA_SERVER_1_')) {
     define('_MEDIA_SERVER_1_', Configuration::get('PS_MEDIA_SERVER_1'));
 }
-if (!defined('_MEDIA_SERVER_2_')) {
-    define('_MEDIA_SERVER_2_', Configuration::get('PS_MEDIA_SERVER_2'));
-}
-if (!defined('_MEDIA_SERVER_3_')) {
-    define('_MEDIA_SERVER_3_', Configuration::get('PS_MEDIA_SERVER_3'));
-}
-
-/* Get smarty */
-require_once($currentDir.'/smarty.config.inc.php');
-$context->smarty = $smarty;

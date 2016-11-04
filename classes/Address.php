@@ -138,8 +138,6 @@ class AddressCore extends ObjectModel
         ),
     );
 
-    protected $_includeContainer = false;
-
     /** @var array Web service parameters */
     protected $webserviceParameters = array(
         'objectsNodeName' => 'addresses',
@@ -236,23 +234,7 @@ class AddressCore extends ObjectModel
 
         return $out;
     }
-
-    /**
-     * @see ObjectModel::validateController()
-     */
-    public function validateController($htmlentities = true)
-    {
-        $errors = parent::validateController($htmlentities);
-        if (!Configuration::get('VATNUMBER_MANAGEMENT') || !Configuration::get('VATNUMBER_CHECKING')) {
-            return $errors;
-        }
-        include_once(_PS_MODULE_DIR_.'vatnumber/vatnumber.php');
-        if (class_exists('VatNumber', false)) {
-            return array_merge($errors, VatNumber::WebServiceCheck($this->vat_number));
-        }
-
-        return $errors;
-    }
+    
     /**
      * Get Zone ID for a given address
      *

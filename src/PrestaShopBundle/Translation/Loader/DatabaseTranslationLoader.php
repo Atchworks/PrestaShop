@@ -1,7 +1,7 @@
 <?php
 
 /**
- * 2007-2015 PrestaShop
+ * 2007-2015 PrestaShop.
  *
  * NOTICE OF LICENSE
  *
@@ -34,30 +34,61 @@ use Doctrine\ORM\EntityManagerInterface;
 class DatabaseTranslationLoader implements LoaderInterface
 {
     /** @var EntityManagerInterface */
-    protected $em;
-    
+    protected $entityManager;
+
     /**
-     * 
-     * @param EntityManagerInterface $em
+     * @param EntityManagerInterface $entityManager
      */
-    public function __construct(EntityManagerInterface $em)
+    public function __construct(EntityManagerInterface $entityManager)
     {
-        $this->em = $em;
+        $this->entityManager = $entityManager;
     }
-    
+
     /**
      * {@inheritdoc}
      */
-    public function load($resource, $locale, $domain = 'messages')
+    public function load($resource, $locale, $domain = 'messages', $theme = null)
     {
-        $lang = $this->em->getRepository('PrestaShopBundle:Lang')->findOneByLocale($locale);
-        $translations = $this->em->getRepository('PrestaShopBundle:Translation')->findBy(['lang' => $lang, 'domain' => $domain]);
+        $lang = $this->entityManager
+            ->getRepository('PrestaShopBundle:Lang')
+            ->findOneByLocale($locale)
+        ;
+
+        $translationRepository = $this->entityManager
+            ->getRepository('PrestaShopBundle:Translation')
+        ;
+
+        $queryBuilder = $translationRepository
+            ->createQueryBuilder('t')
+            ->where('t.lang =:lang')
+            ->setParameter('lang', $lang)
+        ;
+
+        if (!is_null($theme)) {
+            $queryBuilder
+                ->andWhere('t.theme = :theme')
+                ->setParameter('theme', $theme)
+            ;
+        } else {
+            $queryBuilder->andWhere('t.theme IS NULL');
+        }
+
+        if ($domain !== '*') {
+            $queryBuilder->andWhere('REGEXP(t.domain, :domain) = true')
+                ->setParameter('domain', $domain)
+            ;
+        }
+
+        $translations = $queryBuilder->getQuery()
+            ->getResult()
+        ;
+
         $catalogue = new MessageCatalogue($locale);
-        
+
         foreach ($translations as $translation) {
             $catalogue->set($translation->getKey(), $translation->getTranslation(), $translation->getDomain());
         }
-        
+
         return $catalogue;
     }
 }

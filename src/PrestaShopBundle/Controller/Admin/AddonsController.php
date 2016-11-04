@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use PhpEncryption;
 
 class AddonsController extends Controller
 {
@@ -21,6 +22,7 @@ class AddonsController extends Controller
     {
         $addonsProvider = $this->container->get('prestashop.core.admin.data_provider.addons_interface');
         $modulesProvider = $this->container->get('prestashop.core.admin.data_provider.module_interface');
+        $translator = $this->container->get('translator');
         $response = new JsonResponse();
 
         // Parameters needed in order to authenticate the merchant : login and password
@@ -35,8 +37,14 @@ class AddonsController extends Controller
 
             Configuration::updateValue('PS_LOGGED_ON_ADDONS', 1);
 
-            $response->headers->setCookie(new Cookie('username_addons', $params['username_addons']));
-            $response->headers->setCookie(new Cookie('password_addons', $params['password_addons']));
+            $phpEncryption = new PhpEncryption(_NEW_COOKIE_KEY_);
+
+            $response->headers->setCookie(
+                new Cookie('username_addons', $phpEncryption->encrypt($params['username_addons']))
+            );
+            $response->headers->setCookie(
+                new Cookie('password_addons', $phpEncryption->encrypt($params['password_addons']))
+            );
             $response->headers->setCookie(new Cookie('is_contributor', (int)$json->is_contributor));
 
             $response->setData(['success' => 1, 'message' => '']);
@@ -44,7 +52,9 @@ class AddonsController extends Controller
         } catch (Exception $e) {
             $response->setData([
                 'success' => 0,
-                'message' => $e->getMessage(),
+                'message' => $translator->trans('PrestaShop was unable to log in to Addons. Please check your credentials and your Internet connection.',
+                        array(),
+                        'Admin.Notifications.Error'),
             ]);
         }
 

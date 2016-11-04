@@ -34,7 +34,7 @@ class AdminStatsControllerCore extends AdminStatsTabController
     public static function getVisits($unique = false, $date_from, $date_to, $granularity = false)
     {
         $visits = ($granularity == false) ? 0 : array();
-        $moduleManagerBuilder = new ModuleManagerBuilder();
+        $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
         $moduleManager = $moduleManagerBuilder->build();
 
         /** @var Gapi $gapi */
@@ -58,21 +58,21 @@ class AdminStatsControllerCore extends AdminStatsTabController
         } else {
             if ($granularity == 'day') {
                 $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
-				SELECT LEFT(`date_add`, 10) as date, COUNT('.($unique ? 'DISTINCT id_guest' : '*').') as visits
+				SELECT date(`date_add`) as date, COUNT('.($unique ? 'DISTINCT id_guest' : '*').') as visits
 				FROM `'._DB_PREFIX_.'connections`
 				WHERE `date_add` BETWEEN "'.pSQL($date_from).' 00:00:00" AND "'.pSQL($date_to).' 23:59:59"
 				'.Shop::addSqlRestriction().'
-				GROUP BY LEFT(`date_add`, 10)');
+				GROUP BY date(`date_add`)');
                 foreach ($result as $row) {
                     $visits[strtotime($row['date'])] = $row['visits'];
                 }
             } elseif ($granularity == 'month') {
                 $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
-				SELECT LEFT(`date_add`, 7) as date, COUNT('.($unique ? 'DISTINCT id_guest' : '*').') as visits
+				SELECT LEFT(LAST_DAY(`date_add`), 7) as date, COUNT('.($unique ? 'DISTINCT id_guest' : '*').') as visits
 				FROM `'._DB_PREFIX_.'connections`
 				WHERE `date_add` BETWEEN "'.pSQL($date_from).' 00:00:00" AND "'.pSQL($date_to).' 23:59:59"
 				'.Shop::addSqlRestriction().'
-				GROUP BY LEFT(`date_add`, 7)');
+				GROUP BY LAST_DAY(`date_add`)');
                 foreach ($result as $row) {
                     $visits[strtotime($row['date'].'-01')] = $row['visits'];
                 }
@@ -669,7 +669,7 @@ class AdminStatsControllerCore extends AdminStatsTabController
                 break;
 
             case 'newsletter_registrations':
-                $moduleManagerBuilder = new ModuleManagerBuilder();
+                $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
                 $moduleManager = $moduleManagerBuilder->build();
 
                 $value = Db::getInstance(_PS_USE_SQL_SLAVE_)->getValue('

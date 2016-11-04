@@ -531,7 +531,7 @@ CREATE TABLE `PREFIX_customer` (
   `firstname` varchar(255) NOT NULL,
   `lastname` varchar(255) NOT NULL,
   `email` varchar(128) NOT NULL,
-  `passwd` varchar(255) NOT NULL,
+  `passwd` varchar(60) NOT NULL,
   `last_passwd_gen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `birthday` date DEFAULT NULL,
   `newsletter` tinyint(1) unsigned NOT NULL DEFAULT '0',
@@ -688,7 +688,7 @@ CREATE TABLE `PREFIX_employee` (
   `lastname` varchar(32) NOT NULL,
   `firstname` varchar(32) NOT NULL,
   `email` varchar(128) NOT NULL,
-  `passwd` varchar(32) NOT NULL,
+  `passwd` varchar(60) NOT NULL,
   `last_passwd_gen` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `stats_date_from` date DEFAULT NULL,
   `stats_date_to` date DEFAULT NULL,
@@ -707,7 +707,7 @@ CREATE TABLE `PREFIX_employee` (
   `id_last_order` int(10) unsigned NOT NULL DEFAULT '0',
   `id_last_customer_message` int(10) unsigned NOT NULL DEFAULT '0',
   `id_last_customer` int(10) unsigned NOT NULL DEFAULT '0',
-  `last_connection_date` date DEFAULT '0000-00-00',
+  `last_connection_date` date DEFAULT NULL,
   `reset_password_token` varchar(40) DEFAULT NULL,
   `reset_password_validity` datetime DEFAULT NULL,
   PRIMARY KEY (`id_employee`),
@@ -1030,16 +1030,6 @@ CREATE TABLE `PREFIX_module_carrier` (
   `id_shop`INT(11) unsigned NOT NULL DEFAULT '1',
   `id_reference` INT(11) NOT NULL,
   PRIMARY KEY (`id_module`,`id_shop`, `id_reference`)
-) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8 COLLATION;
-
-CREATE TABLE `PREFIX_module_history` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `id_employee` int(10) unsigned NOT NULL,
-  `id_module` int(10) unsigned NOT NULL,
-  `date_add` datetime NOT NULL,
-  `date_upd` datetime NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id_employee` (`id_employee`,`id_module`)
 ) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8 COLLATION;
 
 CREATE TABLE `PREFIX_operating_system` (
@@ -1430,7 +1420,7 @@ CREATE TABLE `PREFIX_product` (
   `redirect_type` ENUM('', '404', '301', '302') NOT NULL DEFAULT '',
   `id_product_redirected` int(10) unsigned NOT NULL DEFAULT '0',
   `available_for_order` tinyint(1) NOT NULL DEFAULT '1',
-  `available_date` date NOT NULL DEFAULT '0000-00-00',
+  `available_date` date DEFAULT NULL,
   `show_condition` tinyint(1) NOT NULL DEFAULT '0',
   `condition` ENUM('new', 'used', 'refurbished') NOT NULL DEFAULT 'new',
   `show_price` tinyint(1) NOT NULL DEFAULT '1',
@@ -1475,7 +1465,7 @@ CREATE TABLE IF NOT EXISTS `PREFIX_product_shop` (
   `redirect_type` ENUM('', '404', '301', '302') NOT NULL DEFAULT '',
   `id_product_redirected` int(10) unsigned NOT NULL DEFAULT '0',
   `available_for_order` tinyint(1) NOT NULL DEFAULT '1',
-  `available_date` date NOT NULL DEFAULT '0000-00-00',
+  `available_date` date DEFAULT NULL,
   `show_condition` tinyint(1) NOT NULL DEFAULT '1',
   `condition` enum('new','used','refurbished') NOT NULL DEFAULT 'new',
   `show_price` tinyint(1) NOT NULL DEFAULT '1',
@@ -1509,7 +1499,7 @@ CREATE TABLE `PREFIX_product_attribute` (
   `unit_price_impact` DECIMAL(20,6) NOT NULL DEFAULT '0.00',
   `default_on` tinyint(1) unsigned NULL DEFAULT NULL,
   `minimal_quantity` int(10) unsigned NOT NULL DEFAULT '1',
-  `available_date` date NOT NULL DEFAULT '0000-00-00',
+  `available_date` date DEFAULT NULL,
   PRIMARY KEY (`id_product_attribute`),
   KEY `product_attribute_product` (`id_product`),
   KEY `reference` (`reference`),
@@ -1529,7 +1519,7 @@ CREATE TABLE `PREFIX_product_attribute_shop` (
   `unit_price_impact` DECIMAL(20,6) NOT NULL DEFAULT '0.00',
   `default_on` tinyint(1) unsigned NULL DEFAULT NULL,
   `minimal_quantity` int(10) unsigned NOT NULL DEFAULT '1',
-  `available_date` date NOT NULL DEFAULT '0000-00-00',
+  `available_date` date DEFAULT NULL,
   PRIMARY KEY (`id_product_attribute`, `id_shop`),
   UNIQUE KEY `id_product` (`id_product`, `id_shop`, `default_on`)
 ) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8 COLLATION;
@@ -1586,7 +1576,7 @@ CREATE TABLE `PREFIX_product_sale` (
   `id_product` int(10) unsigned NOT NULL,
   `quantity` int(10) unsigned NOT NULL DEFAULT '0',
   `sale_nbr` int(10) unsigned NOT NULL DEFAULT '0',
-  `date_upd` date NOT NULL,
+  `date_upd` date DEFAULT NULL,
   PRIMARY KEY (`id_product`),
   KEY `quantity` (`quantity`)
 ) ENGINE=ENGINE_TYPE DEFAULT CHARSET=utf8 COLLATION;

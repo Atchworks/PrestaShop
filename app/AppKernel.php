@@ -17,6 +17,8 @@ class AppKernel extends Kernel
             new Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle(),
             // PrestaShop Core bundle
             new PrestaShopBundle\PrestaShopBundle(),
+            // PrestaShop Translation parser
+            new PrestaShop\TranslationToolsBundle\TranslationToolsBundle(),
             // Api consumer
             new Csa\Bundle\GuzzleBundle\CsaGuzzleBundle(),
         );
@@ -25,7 +27,6 @@ class AppKernel extends Kernel
             $bundles[] = new Symfony\Bundle\DebugBundle\DebugBundle();
             $bundles[] = new Symfony\Bundle\WebProfilerBundle\WebProfilerBundle();
             $bundles[] = new Sensio\Bundle\DistributionBundle\SensioDistributionBundle();
-            $bundles[] = new Sensio\Bundle\GeneratorBundle\SensioGeneratorBundle();
         }
 
         if (extension_loaded('apc')) {

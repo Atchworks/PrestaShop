@@ -39,7 +39,9 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Routing\Router;
 use Symfony\Component\Routing\Loader\YamlFileLoader;
+use Symfony\Component\Yaml\Yaml;
 use GuzzleHttp\Client;
+use Symfony\Component\Filesystem\Exception\IOException;
 
 class ModuleManagerBuilder
 {
@@ -57,33 +59,19 @@ class ModuleManagerBuilder
     public static $translator = null;
     public static $addonsDataProvider = null;
     public static $categoriesProvider = null;
+    public static $instance = null;
 
-    public function __construct()
-    {
-        $marketPlaceClient = new ApiClient(
-            new Client(array()),
-            $this->getLanguageIso(),
-            $this->getCountryIso(),
-            _PS_VERSION_)
-        ;
-
-        self::$addonsDataProvider = new AddonsDataProvider($marketPlaceClient);
-        self::$categoriesProvider = new CategoriesProvider($marketPlaceClient);
-
-        if (is_null(self::$adminModuleDataProvider)) {
-            self::$adminModuleDataProvider = new AdminModuleDataProvider(
-                $this->getLanguageIso(),
-                $this->getSymfonyRouter(),
-                self::$addonsDataProvider,
-                self::$categoriesProvider
-            );
-
-            self::$translator = Context::getContext()->getTranslator();
-            self::$moduleDataUpdater = new ModuleDataUpdater(self::$addonsDataProvider, self::$adminModuleDataProvider);
-            self::$legacyLogger = new LegacyLogger();
-            self::$moduleDataProvider = new ModuleDataProvider(self::$legacyLogger, self::$translator);
-            self::$moduleZipManager = new ModuleZipManager(new Filesystem(), new Finder(), self::$translator);
+    /**
+     * @param null $baseUrl
+     *
+     * @return ModuleManagerBuilder
+     */
+    static public function getInstance() {
+        if (self::$instance == null) {
+            self::$instance = new self();
         }
+
+        return self::$instance;
     }
 
     /**
@@ -138,6 +126,61 @@ class ModuleManagerBuilder
         return self::$modulesRepository;
     }
 
+    private function __construct()
+    {
+        $phpConfigFile = $this->getConfigDir().'/config.php';
+        if (file_exists($phpConfigFile)
+            && filemtime($phpConfigFile) >= filemtime(_PS_ROOT_DIR_.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'config.yml')) {
+            $config = require($phpConfigFile);
+        } else {
+            $config = Yaml::parse(
+                file_get_contents(
+                    _PS_ROOT_DIR_.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'config.yml'
+                )
+            );
+            try {
+                $filesystem = new Filesystem();
+                $filesystem->dumpFile($phpConfigFile, '<?php return '.var_export($config, true).';'."\n");
+            } catch (IOException $e) {
+                return false;
+            }
+        }
+
+        $clientConfig = $config['csa_guzzle']['clients']['addons_api']['config'];
+
+        $marketPlaceClient = new ApiClient(
+            new Client($clientConfig),
+            $this->getLanguageIso(),
+            $this->getCountryIso(),
+            _PS_VERSION_)
+        ;
+
+        if (file_exists($this->getConfigDir().'/parameters.php')) {
+            $parameters = require($this->getConfigDir().'/parameters.php');
+            if (array_key_exists('addons.api_client.verify_ssl', $parameters['parameters'])) {
+                $marketPlaceClient->setSslVerification($parameters['parameters']['addons.api_client.verify_ssl']);
+            }
+        }
+
+        self::$addonsDataProvider = new AddonsDataProvider($marketPlaceClient);
+        self::$categoriesProvider = new CategoriesProvider($marketPlaceClient);
+
+        if (is_null(self::$adminModuleDataProvider)) {
+            self::$adminModuleDataProvider = new AdminModuleDataProvider(
+                $this->getLanguageIso(),
+                $this->getSymfonyRouter(),
+                self::$addonsDataProvider,
+                self::$categoriesProvider
+            );
+
+            self::$translator = Context::getContext()->getTranslator();
+            self::$moduleDataUpdater = new ModuleDataUpdater(self::$addonsDataProvider, self::$adminModuleDataProvider);
+            self::$legacyLogger = new LegacyLogger();
+            self::$moduleDataProvider = new ModuleDataProvider(self::$legacyLogger, self::$translator);
+            self::$moduleZipManager = new ModuleZipManager(new Filesystem(), new Finder(), self::$translator);
+        }
+    }
+
     /**
      * Returns an instance of \Symfony\Component\Routing\Router from Symfony scope into Legacy.
      *
@@ -147,11 +190,16 @@ class ModuleManagerBuilder
     {
         // get the environment to load the good routing file
         $routeFileName = _PS_MODE_DEV_ === true ? 'routing_dev.yml' : 'routing.yml';
-        $routesDirectory = _PS_ROOT_DIR_.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'config';
+        $routesDirectory = $this->getConfigDir();
         $locator = new FileLocator(array($routesDirectory));
         $loader = new YamlFileLoader($locator);
 
         return new Router($loader, $routeFileName);
+    }
+
+    protected function getConfigDir()
+    {
+        return _PS_ROOT_DIR_.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'config';
     }
 
     /**
@@ -159,7 +207,8 @@ class ModuleManagerBuilder
      */
     private function getLanguageIso()
     {
-        $langId = Context::getContext()->employee instanceof \Employee ? Context::getContext()->employee->id_lang : Context::getContext()->language->iso_code;
+        $context = Context::getContext();
+        $langId = $context->employee instanceof \Employee ? $context->employee->id_lang : $context->language->id;
 
         return \LanguageCore::getIsoById($langId);
     }

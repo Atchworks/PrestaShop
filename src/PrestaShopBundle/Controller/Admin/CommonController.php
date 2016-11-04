@@ -163,7 +163,7 @@ class CommonController extends FrameworkBundleAdminController
 
         $modulesProvider = $this->container->get('prestashop.core.admin.data_provider.module_interface');
         /* @var $modulesProvider AdminModuleDataProvider */
-        $modulesRepository = (new ModuleManagerBuilder())->buildRepository();
+        $modulesRepository = ModuleManagerBuilder::getInstance()->buildRepository();
 
         $modules = array();
         foreach ($moduleIdList as $id) {
@@ -193,8 +193,10 @@ class CommonController extends FrameworkBundleAdminController
      */
     public function renderSidebarAction($url, $title = '', $footer = '')
     {
+        $tools = $this->container->get('prestashop.adapter.tools');
+
         return $this->render('PrestaShopBundle:Admin:Common/_partials/_sidebar.html.twig', [
-            'footer' => $footer,
+            'footer' => $tools->purifyHTML($footer),
             'title' => $title,
             'url' => urldecode($url),
         ]);

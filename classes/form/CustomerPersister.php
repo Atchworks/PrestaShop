@@ -55,7 +55,7 @@ class CustomerPersisterCore
         }
 
         if (!$customer->is_guest) {
-            $customer->passwd = $this->crypto->encrypt(
+            $customer->passwd = $this->crypto->hash(
                 $newPassword ? $newPassword : $clearTextPassword,
                 _COOKIE_KEY_
             );
@@ -88,7 +88,7 @@ class CustomerPersisterCore
         if ($clearTextPassword && $customer->is_guest) {
             $guest_to_customer = true;
             $customer->is_guest = false;
-            $customer->passwd = $this->crypto->encrypt(
+            $customer->passwd = $this->crypto->hash(
                 $clearTextPassword,
                 _COOKIE_KEY_
             );
@@ -111,8 +111,8 @@ class CustomerPersisterCore
         if ($ok) {
             $this->context->updateCustomer($customer);
             $this->context->cart->update();
-            Hook::exec('actionCustomerAccountAdd', [
-                'newCustomer' => $customer
+            Hook::exec('actionCustomerAccountUpdate', [
+                'customer' => $customer,
             ]);
             if ($guest_to_customer) {
                 $this->sendConfirmationMail($customer);
@@ -139,7 +139,7 @@ class CustomerPersisterCore
              * that guests cannot log in even with the generated
              * password. That's the case at least at the time of writing.
              */
-            $clearTextPassword = $this->crypto->encrypt(
+            $clearTextPassword = $this->crypto->hash(
                 microtime(),
                 _COOKIE_KEY_
             );
@@ -147,7 +147,7 @@ class CustomerPersisterCore
             $customer->is_guest = true;
         }
 
-        $customer->passwd = $this->crypto->encrypt(
+        $customer->passwd = $this->crypto->hash(
             $clearTextPassword,
             _COOKIE_KEY_
         );
@@ -167,8 +167,8 @@ class CustomerPersisterCore
             $this->context->updateCustomer($customer);
             $this->context->cart->update();
             $this->sendConfirmationMail($customer);
-            Hook::exec('actionCustomerAccountUpdate', array(
-                'customer' => $customer
+            Hook::exec('actionCustomerAccountAdd', array(
+                'newCustomer' => $customer,
             ));
         }
 
@@ -184,12 +184,16 @@ class CustomerPersisterCore
         return Mail::Send(
             $this->context->language->id,
             'account',
-            Mail::l('Welcome!'),
-            [
+            $this->translator->trans(
+                'Welcome!',
+                array(),
+                'Emails.Subject'
+            ),
+            array(
                 '{firstname}' => $customer->firstname,
                 '{lastname}' => $customer->lastname,
                 '{email}' => $customer->email,
-            ],
+            ),
             $customer->email,
             $customer->firstname.' '.$customer->lastname
         );

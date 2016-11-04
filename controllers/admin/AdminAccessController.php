@@ -94,6 +94,7 @@ class AdminAccessControllerCore extends AdminController
             'admin_profile' => (int)_PS_ADMIN_PROFILE_,
             'access_edit' => $this->access('edit'),
             'perms' => array('view', 'add', 'edit', 'delete'),
+            'id_perms' => array('view' => 0, 'add' => 1, 'edit' => 2, 'delete' => 3, 'all' => 4),
             'modules' => $modules,
             'link' => $this->context->link
         );
@@ -108,20 +109,15 @@ class AdminAccessControllerCore extends AdminController
     public function initContent()
     {
         $this->display = 'edit';
-        $this->initTabModuleList();
+
         if (!$this->loadObject(true)) {
             return;
         }
 
-        $this->initPageHeaderToolbar();
-
         $this->content .= $this->renderForm();
+
         $this->context->smarty->assign(array(
             'content' => $this->content,
-            'url_post' => self::$currentIndex.'&token='.$this->token,
-            'show_page_header_toolbar' => $this->show_page_header_toolbar,
-            'page_header_toolbar_title' => $this->page_header_toolbar_title,
-            'page_header_toolbar_btn' => $this->page_header_toolbar_btn
         ));
     }
 
@@ -156,7 +152,7 @@ class AdminAccessControllerCore extends AdminController
             $enabled = (int)Tools::getValue('enabled');
             $id_tab = (int)Tools::getValue('id_tab');
             $id_profile = (int)Tools::getValue('id_profile');
-            
+
             die($access->updateLgcAccess((int)$id_profile, $id_tab, $perm, $enabled));
         }
     }

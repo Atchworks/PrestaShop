@@ -38,13 +38,12 @@
                               <option value="bulk-enable-mobile">{{ 'Enable Mobile'|trans({}, 'Admin.Modules.Feature') }}</option>
                               <option value="bulk-disable-mobile">{{ 'Disable Mobile'|trans({}, 'Admin.Modules.Feature') }}</option>
                             </select>
-                            <input type="checkbox" class="module-checkbox-bulk-select-all" />
                         </div>
                         <div class="module-sorting module-sorting-author pull-right">
                             <select class="c-select c-select-sm">
                               <option value="" disabled>- {{ 'Sort by'|trans({}, 'Admin.Actions') }} -</option>
                               <option value="name">{{ 'Name'|trans({}, 'Admin.Global') }}</option>
-                              <option value="access-date" selected>{{ 'Last access'|trans({}, 'Admin.Modules.Feature') }}</option>
+                              <option value="access-desc" selected>{{ 'Last access'|trans({}, 'Admin.Modules.Feature') }}</option>
                             </select>
                         </div>
                     </div>
@@ -59,7 +58,7 @@
                                 data-content="{{ "These are all the modules you’ve added to your shop, either by buying it from PrestaShop Addons, or by uploading it directly."|trans({}, 'Admin.Modules.Help') }}">
                            </span>
                    </div>
-		{% include 'PrestaShopBundle:Admin/Module/Includes:grid.html.twig' with { 'modules': modules.modules, 'display_type': 'list', 'origin': 'manage', 'id': 'all' } %}
+		{% include 'PrestaShopBundle:Admin/Module/Includes:grid_manage_installed.html.twig' with { 'modules': modules.modules, 'display_type': 'list', 'origin': 'manage', 'id': 'all' } %}
 
 		<hr class="top-menu-separator">
 
@@ -70,7 +69,7 @@
                                 data-content="{{ "These modules from PrestaShop are preinstalled when you set-up your shop. They cover the basics of e-commerce and comes for free."|trans({}, 'Admin.Modules.Help') }}">
                            </span>
 		</div>
-		{% include 'PrestaShopBundle:Admin/Module/Includes:grid.html.twig' with { 'modules': modules.native_modules, 'display_type': 'list', 'origin': 'manage', 'id': 'native' } %}
+		{% include 'PrestaShopBundle:Admin/Module/Includes:grid_manage_installed.html.twig' with { 'modules': modules.native_modules, 'display_type': 'list', 'origin': 'manage', 'id': 'native' } %}
 
 		<hr class="top-menu-separator">
 
@@ -81,7 +80,13 @@
                                 data-content="{{ "Each theme you install will come with its own set of modules. You’ll find here all the modules related to your active theme."|trans({}, 'Admin.Modules.Help') }}">
                            </span>
 		</div>
-		{% include 'PrestaShopBundle:Admin/Module/Includes:grid.html.twig' with { 'modules': modules.theme_bundle, 'display_type': 'list', 'origin': 'manage', 'id': 'theme' } %}
+		{% include 'PrestaShopBundle:Admin/Module/Includes:grid_manage_installed.html.twig' with { 'modules': modules.theme_bundle, 'display_type': 'list', 'origin': 'manage', 'id': 'theme' } %}
         </div>
     </div>
 {% endblock %}
+
+{% set js_translatable = {
+"Bulk Action - One module minimum": "You need to select at least one module to use the bulk action."|trans({}, 'Admin.Modules.Notification'),
+"Bulk Action - Request not found": 'The action "[1]" is not available, impossible to perform your request.'|trans({}, 'Admin.Modules.Notification'),
+"Bulk Action - Request not available for module": "The action [1] is not available for module [2]. Skipped."|trans({}, 'Admin.Modules.Notification'),
+}|merge(js_translatable) %}

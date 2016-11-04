@@ -21,7 +21,7 @@ var AdminModuleCard = function () {
     this.moduleActionMenuEnableMobileLinkSelector = 'a.module_action_menu_enable_mobile';
     this.moduleActionMenuDisableMobileLinkSelector = 'a.module_action_menu_disable_mobile';
     this.moduleActionMenuResetLinkSelector = 'a.module_action_menu_reset';
-    this.moduleActionMenuUpdateLinkSelector = 'a.module_action_menu_update';
+    this.moduleActionMenuUpdateLinkSelector = 'a.module_action_menu_upgrade';
     this.moduleItemListSelector = '.module-item-list';
     this.moduleItemGridSelector = '.module-item-grid';
 
@@ -121,7 +121,7 @@ var AdminModuleCard = function () {
         var url = "//" + window.location.host + element.attr("href");
 
         if (forceDeletion === "true" || forceDeletion === true) {
-          url +="?deletion=true";
+          url +="&deletion=true";
         }
 
         $.ajax({

@@ -1,6 +1,6 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2015 PrestaShop.
  *
  * NOTICE OF LICENSE
  *
@@ -23,7 +23,6 @@
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
-
 class CookieCore
 {
     /** @var array Contain cookie content in a key => value format */
@@ -42,7 +41,7 @@ class CookieCore
     protected $_path;
 
     /** @var array cipher tool instance */
-    protected $_cipherTool;
+    protected $cipherTool;
 
     protected $_modified = false;
 
@@ -55,7 +54,7 @@ class CookieCore
     protected $_secure = false;
 
     /**
-     * Get data if the cookie exists and else initialize an new one
+     * Get data if the cookie exists and else initialize an new one.
      *
      * @param $name string Cookie name before encrypting
      * @param $path string
@@ -64,7 +63,7 @@ class CookieCore
     {
         $this->_content = array();
         $this->_standalone = $standalone;
-        $this->_expire = is_null($expire) ? time() + 1728000 : (int)$expire;
+        $this->_expire = is_null($expire) ? time() + 1728000 : (int) $expire;
         $this->_path = trim(($this->_standalone ? '' : Context::getContext()->shop->physical_uri).$path, '/\\').'/';
         if ($this->_path{0} != '/') {
             $this->_path = '/'.$this->_path;
@@ -76,14 +75,13 @@ class CookieCore
         $this->_name = 'PrestaShop-'.md5(($this->_standalone ? '' : _PS_VERSION_).$name.$this->_domain);
         $this->_allow_writing = true;
         $this->_salt = $this->_standalone ? str_pad('', 8, md5('ps'.__FILE__)) : _COOKIE_IV_;
+
         if ($this->_standalone) {
-            $this->_cipherTool = new Blowfish(str_pad('', 56, md5('ps'.__FILE__)), str_pad('', 56, md5('iv'.__FILE__)));
-        } elseif (!Configuration::get('PS_CIPHER_ALGORITHM') || !defined('_RIJNDAEL_KEY_')) {
-            $this->_cipherTool = new Blowfish(_COOKIE_KEY_, _COOKIE_IV_);
-        } else {
-            $this->_cipherTool = new Rijndael(_RIJNDAEL_KEY_, _RIJNDAEL_IV_);
+            $this->cipherTool = new PhpEncryption(str_pad('', 32, __FILE__));
         }
-        $this->_secure = (bool)$secure;
+        $this->cipherTool = new PhpEncryption(_NEW_COOKIE_KEY_);
+
+        $this->_secure = (bool) $secure;
 
         $this->update();
     }
@@ -125,23 +123,25 @@ class CookieCore
         if (!$domain) {
             $domain = $out[4];
         }
+
         return $domain;
     }
 
     /**
-     * Set expiration date
+     * Set expiration date.
      *
      * @param int $expire Expiration time from now
      */
     public function setExpire($expire)
     {
-        $this->_expire = (int)($expire);
+        $this->_expire = (int) ($expire);
     }
 
     /**
-     * Magic method wich return cookie data from _content array
+     * Magic method wich return cookie data from _content array.
      *
      * @param string $key key wanted
+     *
      * @return string value corresponding to the key
      */
     public function __get($key)
@@ -150,9 +150,10 @@ class CookieCore
     }
 
     /**
-     * Magic method which check if key exists in the cookie
+     * Magic method which check if key exists in the cookie.
      *
      * @param string $key key wanted
+     *
      * @return bool key existence
      */
     public function __isset($key)
@@ -161,10 +162,11 @@ class CookieCore
     }
 
     /**
-     * Magic method which adds data into _content array
+     * Magic method which adds data into _content array.
      *
-     * @param string $key Access key for the value
-     * @param mixed $value Value corresponding to the key
+     * @param string $key   Access key for the value
+     * @param mixed  $value Value corresponding to the key
+     *
      * @throws Exception
      */
     public function __set($key, $value)
@@ -182,7 +184,7 @@ class CookieCore
     }
 
     /**
-     * Magic method wich delete data into _content array
+     * Magic method wich delete data into _content array.
      *
      * @param string $key key wanted
      */
@@ -195,9 +197,10 @@ class CookieCore
     }
 
     /**
-     * Check customer informations saved into cookie and return customer validity
+     * Check customer informations saved into cookie and return customer validity.
      *
      * @deprecated as of version 1.5 use Customer::isLogged() instead
+     *
      * @return bool customer validity
      */
     public function isLogged($withGuest = false)
@@ -208,37 +211,39 @@ class CookieCore
         }
 
         /* Customer is valid only if it can be load and if cookie password is the same as database one */
-        if ($this->logged == 1 && $this->id_customer && Validate::isUnsignedId($this->id_customer) && Customer::checkPassword((int)($this->id_customer), $this->passwd)) {
+        if ($this->logged == 1 && $this->id_customer && Validate::isUnsignedId($this->id_customer) && Customer::checkPassword((int) ($this->id_customer), $this->passwd)) {
             return true;
         }
+
         return false;
     }
 
     /**
-     * Check employee informations saved into cookie and return employee validity
+     * Check employee informations saved into cookie and return employee validity.
      *
      * @deprecated as of version 1.5 use Employee::isLoggedBack() instead
+     *
      * @return bool employee validity
      */
     public function isLoggedBack()
     {
         Tools::displayAsDeprecated();
         /* Employee is valid only if it can be load and if cookie password is the same as database one */
-        return ($this->id_employee
+        return $this->id_employee
             && Validate::isUnsignedId($this->id_employee)
-            && Employee::checkPassword((int)$this->id_employee, $this->passwd)
+            && Employee::checkPassword((int) $this->id_employee, $this->passwd)
             && (!isset($this->_content['remote_addr']) || $this->_content['remote_addr'] == ip2long(Tools::getRemoteAddr()) || !Configuration::get('PS_COOKIE_CHECKIP'))
-        );
+        ;
     }
 
     /**
      * Delete cookie
-     * As of version 1.5 don't call this function, use Customer::logout() or Employee::logout() instead;
+     * As of version 1.5 don't call this function, use Customer::logout() or Employee::logout() instead;.
      */
     public function logout()
     {
         $this->_content = array();
-        $this->_setcookie();
+        $this->encryptAndSetCookie();
         unset($_COOKIE[$this->_name]);
         $this->_modified = true;
     }
@@ -246,7 +251,7 @@ class CookieCore
     /**
      * Soft logout, delete everything links to the customer
      * but leave there affiliate's informations.
-     * As of version 1.5 don't call this function, use Customer::mylogout() instead;
+     * As of version 1.5 don't call this function, use Customer::mylogout() instead;.
      */
     public function mylogout()
     {
@@ -274,13 +279,13 @@ class CookieCore
     }
 
     /**
-     * Get cookie content
+     * Get cookie content.
      */
     public function update($nullValues = false)
     {
         if (isset($_COOKIE[$this->_name])) {
             /* Decrypt cookie content */
-            $content = $this->_cipherTool->decrypt($_COOKIE[$this->_name]);
+            $content = $this->cipherTool->decrypt($_COOKIE[$this->_name]);
             //printf("\$content = %s<br />", $content);
 
             /* Get cookie checksum */
@@ -298,12 +303,6 @@ class CookieCore
                     $this->_content[$tmpTab2[0]] = $tmpTab2[1];
                 }
             }
-            /* Blowfish fix */
-            if (isset($this->_content['checksum'])) {
-                $this->_content['checksum'] = (int)($this->_content['checksum']);
-            }
-            //printf("\$this->_content['checksum'] = %s<br />", $this->_content['checksum']);
-            //die();
             /* Check if cookie has not been modified */
             if (!isset($this->_content['checksum']) || $this->_content['checksum'] != $checksum) {
                 $this->logout();
@@ -317,7 +316,7 @@ class CookieCore
         }
 
         //checks if the language exists, if not choose the default language
-        if (!$this->_standalone && !Language::getLanguage((int)$this->id_lang)) {
+        if (!$this->_standalone && !Language::getLanguage((int) $this->id_lang)) {
             $this->id_lang = Configuration::get('PS_LANG_DEFAULT');
             // set detect_language to force going through Tools::setCookieLanguage to figure out browser lang
             $this->detect_language = true;
@@ -325,22 +324,44 @@ class CookieCore
     }
 
     /**
-     * Setcookie according to php version
+     * Encrypt and set the Cookie.
+     *
+     * @param string|null $cookie Cookie content
+     *
+     * @return bool Indicates whether the Cookie was successfully set
+     *
+     * @deprecated 1.7.0
      */
     protected function _setcookie($cookie = null)
     {
+        return $this->encryptAndSetCookie($cookie);
+    }
+
+    /**
+     * Encrypt and set the Cookie.
+     *
+     * @param string|null $cookie Cookie content
+     *
+     * @return bool Indicates whether the Cookie was successfully set
+     *
+     * @since 1.7.0
+     */
+    protected function encryptAndSetCookie($cookie = null)
+    {
+        // Check if the content fits in the Cookie
+        $length = (ini_get('mbstring.func_overload') & 2) ? mb_strlen($cookie, ini_get('default_charset')) : strlen($cookie);
+        if ($length >= 1048576) {
+            return false;
+        }
         if ($cookie) {
-            $content = $this->_cipherTool->encrypt($cookie);
+            $content = $this->cipherTool->encrypt($cookie);
             $time = $this->_expire;
         } else {
             $content = 0;
             $time = 1;
         }
-        if (PHP_VERSION_ID <= 50200) { /* PHP version > 5.2.0 */
-            return setcookie($this->_name, $content, $time, $this->_path, $this->_domain, $this->_secure);
-        } else {
-            return setcookie($this->_name, $content, $time, $this->_path, $this->_domain, $this->_secure, true);
-        }
+
+        return setcookie($this->_name, $content, $time, $this->_path, $this->_domain, $this->_secure, true);
     }
 
     public function __destruct()
@@ -349,7 +370,7 @@ class CookieCore
     }
 
     /**
-     * Save cookie with setcookie()
+     * Save cookie with setcookie().
      */
     public function write()
     {
@@ -371,11 +392,11 @@ class CookieCore
         $cookie .= 'checksum|'.crc32($this->_salt.$cookie);
         $this->_modified = false;
         /* Cookies are encrypted for evident security reasons */
-        return $this->_setcookie($cookie);
+        return $this->encryptAndSetCookie($cookie);
     }
 
     /**
-     * Get a family of variables (e.g. "filter_")
+     * Get a family of variables (e.g. "filter_").
      */
     public function getFamily($origin)
     {
@@ -388,12 +409,10 @@ class CookieCore
                 $result[$key] = $value;
             }
         }
+
         return $result;
     }
 
-    /**
-     *
-     */
     public function unsetFamily($origin)
     {
         $family = $this->getFamily($origin);
@@ -408,7 +427,7 @@ class CookieCore
     }
 
     /**
-     * @return String name of cookie
+     * @return string name of cookie
      */
     public function getName()
     {
@@ -416,9 +435,10 @@ class CookieCore
     }
 
     /**
-     * Check if the cookie exists
+     * Check if the cookie exists.
      *
      * @since 1.5.0
+     *
      * @return bool
      */
     public function exists()

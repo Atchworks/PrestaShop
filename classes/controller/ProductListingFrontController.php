@@ -138,6 +138,7 @@ abstract class ProductListingFrontControllerCore extends ProductPresentingFrontC
             'js_enabled' => $this->ajax,
             'activeFilters' => $activeFilters,
             'sort_order' => $result->getCurrentSortOrder()->toString(),
+            'clear_all_link' => $this->updateQueryString(array('q' => null, 'page' => null))
         ));
     }
 
@@ -172,6 +173,7 @@ abstract class ProductListingFrontControllerCore extends ProductPresentingFrontC
 
         return $this->render('catalog/_partials/active_filters', array(
             'activeFilters' => $activeFilters,
+            'clear_all_link' => $this->updateQueryString(array('q' => null, 'page' => null))
         ));
     }
 
@@ -433,15 +435,19 @@ abstract class ProductListingFrontControllerCore extends ProductPresentingFrontC
     {
         $search = $this->getProductSearchVariables();
 
+        $rendered_products_top = $this->render('catalog/_partials/products-top', array('listing' => $search));
         $rendered_products = $this->render('catalog/_partials/products', array('listing' => $search));
+        $rendered_products_bottom = $this->render('catalog/_partials/products-bottom', array('listing' => $search));
 
         $data = array(
-            'products' => $search['products'],
+            'rendered_products_top' => $rendered_products_top,
             'rendered_products' => $rendered_products,
-            'rendered_facets' => $search['rendered_facets'],
-            'current_url' => $search['current_url'],
-            'js_enabled' => $search['js_enabled'],
+            'rendered_products_bottom' => $rendered_products_bottom,
         );
+
+        foreach ($search as $key => $value) {
+            $data[$key] = $value;
+        }
 
         return $data;
     }
@@ -463,25 +469,13 @@ abstract class ProductListingFrontControllerCore extends ProductPresentingFrontC
         if ($this->ajax) {
             ob_end_clean();
             header('Content-Type: application/json');
-            die(json_encode($this->getAjaxProductSearchVariables()));
+            $this->ajaxDie(json_encode($this->getAjaxProductSearchVariables()));
         } else {
             $variables = $this->getProductSearchVariables();
-            if (!empty($variables['products'])) {
-                $this->context->smarty->assign(array(
-                    'listing' => $variables,
-                ));
-                $this->setTemplate($template, $params, $locale);
-            } else {
-                header('HTTP/1.1 404 Not Found');
-                header('Status: 404 Not Found');
-                $this->php_self = 'pagenotfound';
-                $this->page_name = 'pagenotfound';
-                $this->context->smarty->assign(
-                    'title',
-                    $this->trans('No results were found for your search.', array(), 'Shop.Notifications.Error')
-                );
-                $this->setTemplate('errors/404');
-            }
+            $this->context->smarty->assign(array(
+                'listing' => $variables,
+            ));
+            $this->setTemplate($template, $params, $locale);
         }
     }
 

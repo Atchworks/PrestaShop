@@ -89,10 +89,23 @@ function formatNumberCldr(value, callback, numberOfDecimal) {
  */
 function formatCurrency(price, currencyFormat, currencySign, currencyBlank)
 {
-	var formatter = cldrForCurrencyFormatterWrapper(null, {
-		maximumFractionDigits: typeof priceDisplayPrecision != 'undefined' ? priceDisplayPrecision : 2
-	});
-	return formatter(price);
+  // if you modified this function, don't forget to modify the PHP function displayPrice (in the Tools.php class)
+  var blank = '';
+  price = parseFloat(price.toFixed(10));
+  price = ps_round(price, priceDisplayPrecision);
+  if (currencyBlank > 0)
+  	blank = ' ';
+  if (currencyFormat == 1)
+  	return currencySign + blank + formatNumber(price, priceDisplayPrecision, ',', '.');
+  if (currencyFormat == 2)
+  	return (formatNumber(price, priceDisplayPrecision, ' ', ',') + blank + currencySign);
+  if (currencyFormat == 3)
+  	return (currencySign + blank + formatNumber(price, priceDisplayPrecision, '.', ','));
+  if (currencyFormat == 4)
+  	return (formatNumber(price, priceDisplayPrecision, ',', '.') + blank + currencySign);
+  if (currencyFormat == 5)
+  	return (currencySign + blank + formatNumber(price, priceDisplayPrecision, '\'', '.'));
+  return price;
 }
 
 /**
@@ -106,8 +119,9 @@ function formatCurrencyCldr(price, callback) {
 	cldrForCurrencyFormatterWrapper(function(formatter) {
 		callback(formatter(price));
 	}, {
-		maximumFractionDigits: typeof priceDisplayPrecision != 'undefined' ? priceDisplayPrecision : 2
-	});
+    minimumFractionDigits: 0,
+    maximumFractionDigits: typeof priceDisplayPrecision != 'undefined' ? priceDisplayPrecision : 2,
+  });
 }
 
 function ps_round_helper(value, mode)

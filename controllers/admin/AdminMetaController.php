@@ -484,7 +484,7 @@ class AdminMetaControllerCore extends AdminController
                 fwrite($write_fd, "# Files\n");
                 foreach ($this->rb_data['Files'] as $iso_code => $files) {
                     foreach ($files as $file) {
-                        if (!empty($language_ids)) {
+                        if (!empty($language_ids) && count($language_ids) > 1) {
                             fwrite($write_fd, 'Disallow: /*'.$iso_code.'/'.$file."\n");
                         } else {
                             fwrite($write_fd, 'Disallow: /'.$file."\n");
@@ -714,8 +714,8 @@ class AdminMetaControllerCore extends AdminController
         $this->addFieldRoute('layered_rule', $this->trans('Route to category which has the "selected_filter" attribute for the "Layered Navigation" (blocklayered) module', array(), 'Admin.ShopParameters.Feature'));
         $this->addFieldRoute('supplier_rule', $this->trans('Route to supplier', array(), 'Admin.ShopParameters.Feature'));
         $this->addFieldRoute('manufacturer_rule', $this->trans('Route to brand', array(), 'Admin.ShopParameters.Feature'));
-        $this->addFieldRoute('cms_rule', $this->trans('Route to CMS page', array(), 'Admin.ShopParameters.Feature'));
-        $this->addFieldRoute('cms_category_rule', $this->trans('Route to CMS category', array(), 'Admin.ShopParameters.Feature'));
+        $this->addFieldRoute('cms_rule', $this->trans('Route to page', array(), 'Admin.ShopParameters.Feature'));
+        $this->addFieldRoute('cms_category_rule', $this->trans('Route to page category', array(), 'Admin.ShopParameters.Feature'));
         $this->addFieldRoute('module', $this->trans('Route to modules', array(), 'Admin.ShopParameters.Feature'));
     }
 
@@ -746,7 +746,9 @@ class AdminMetaControllerCore extends AdminController
         );
 
         // Directories
-        $tab['Directories'] = array('classes/', 'config/', 'download/', 'mails/', 'modules/', 'translations/', 'tools/');
+        $tab['Directories'] = array('cache/', 'classes/', 'config/', 'controllers/',
+            'css/', 'download/', 'js/', 'localization/', 'log/', 'mails/', 'modules/', 'override/',
+            'pdf/', 'src/', 'tools/', 'translations/', 'upload/', 'vendor/', 'web/', 'webservice/');
 
         // Files
         $disallow_controllers = array(
@@ -759,7 +761,7 @@ class AdminMetaControllerCore extends AdminController
         // Rewrite files
         $tab['Files'] = array();
         if (Configuration::get('PS_REWRITING_SETTINGS')) {
-            $sql = 'SELECT ml.url_rewrite, l.iso_code
+            $sql = 'SELECT DISTINCT ml.url_rewrite, l.iso_code
 					FROM '._DB_PREFIX_.'meta m
 					INNER JOIN '._DB_PREFIX_.'meta_lang ml ON ml.id_meta = m.id_meta
 					INNER JOIN '._DB_PREFIX_.'lang l ON l.id_lang = ml.id_lang

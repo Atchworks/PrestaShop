@@ -33,7 +33,7 @@ exports.config = {
     // https://docs.saucelabs.com/reference/platforms-configurator
     //
     capabilities: [{
-        browserName: 'chrome',
+        browserName: require('./settings').browserName,
         tunnelIdentifier: process.env.TRAVIS_JOB_NUMBER,
         screenResolution: "1600x1200",
         platform: "Windows 7",
@@ -103,7 +103,7 @@ exports.config = {
         ui: 'bdd',
         compilers: ['js:babel-register'],
         bail: true,
-        timeout: 8000
+        timeout: 10000
     },
 
     //

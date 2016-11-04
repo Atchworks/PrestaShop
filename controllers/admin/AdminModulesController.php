@@ -413,8 +413,7 @@ class AdminModulesControllerCore extends AdminController
                 }
             }
         } else {
-            require_once(_PS_TOOL_DIR_.'tar/Archive_Tar.php');
-            $archive = new Archive_Tar($file);
+            $archive = new \Archive_Tar($file);
             if ($archive->extract($tmp_folder)) {
                 $zip_folders = scandir($tmp_folder);
                 if ($archive->extract(_PS_MODULE_DIR_)) {
@@ -687,7 +686,7 @@ class AdminModulesControllerCore extends AdminController
                     $this->errors[] = Tools::displayError('You do not have the permission to use this module.');
                 } else {
                     // Uninstall the module before deleting the files, but do not block the process if uninstall returns false
-                    $moduleManagerBuilder = new ModuleManagerBuilder();
+                    $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
                     $moduleManager = $moduleManagerBuilder->build();
 
                     if ($moduleManager->isInstalled($module->name)) {
@@ -837,7 +836,7 @@ class AdminModulesControllerCore extends AdminController
                         continue;
                     }
 
-                    $moduleManagerBuilder = new ModuleManagerBuilder();
+                    $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
                     $moduleManager = $moduleManagerBuilder->build();
 
 
@@ -1030,7 +1029,7 @@ class AdminModulesControllerCore extends AdminController
 
         if ($return) {
             $params = (count($installed_modules)) ? '&installed_modules='.implode('|', $installed_modules) : '';
-            $moduleManagerBuilder = new ModuleManagerBuilder();
+            $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
             $moduleManager = $moduleManagerBuilder->build();
 
 
@@ -1125,7 +1124,7 @@ class AdminModulesControllerCore extends AdminController
             Context::getContext()->smarty->assign('installed_modules', json_encode(explode('|', $list)));
         }
 
-        $moduleManagerBuilder = new ModuleManagerBuilder();
+        $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
         $moduleManager = $moduleManagerBuilder->build();
 
 
@@ -1383,7 +1382,7 @@ class AdminModulesControllerCore extends AdminController
         parent::initModal();
 
         $this->context->smarty->assign(array(
-            'trad_link' => 'index.php?tab=AdminTranslations&token='.Tools::getAdminTokenLite('AdminTranslations').'&type=modules&lang=',
+            'trad_link' => 'index.php?tab=AdminTranslations&token='.Tools::getAdminTokenLite('AdminTranslations').'&type=modules&module='.Tools::getValue('configure').'&lang=',
             'module_languages' => Language::getLanguages(false),
             'module_name' => Tools::getValue('module_name'),
         ));
@@ -1429,9 +1428,6 @@ class AdminModulesControllerCore extends AdminController
 
             return true;
         }
-
-        $this->initToolbar();
-        $this->initPageHeaderToolbar();
 
         // Init
         $smarty = $this->context->smarty;
@@ -1653,13 +1649,9 @@ class AdminModulesControllerCore extends AdminController
             'tab_modules_preferences' => $tab_modules_preferences,
             'kpis' => $this->renderKpis(),
             'module_name' => Tools::getValue('module_name'),
-            'page_header_toolbar_title' => $this->page_header_toolbar_title,
-            'page_header_toolbar_btn' => $this->page_header_toolbar_btn,
             'modules_uri' => __PS_BASE_URI__.basename(_PS_MODULE_DIR_),
             'dont_filter' => $dont_filter,
             'is_contributor' => (int)$this->context->cookie->is_contributor,
-            'maintenance_mode' => !(bool)Configuration::Get('PS_SHOP_ENABLE'),
-            'debug_mode' => (bool)_PS_MODE_DEV_
         );
 
         if ($this->logged_on_addons) {

@@ -11,7 +11,7 @@
 	<link rel="shortcut icon" href="theme/img/favicon.ico" />
 	<link rel="stylesheet" type="text/css" media="all" href="theme/view.css" />
 
-	<?php if (($this->language->getLanguage()->getMetaInformation('is_rtl')) == 'true'): ?>
+	<?php if ($this->language->getLanguage()->isRtl() == 'true'): ?>
 		<link rel="stylesheet" type="text/css" media="all" href="theme/rtl.css" />
 	<?php endif; ?>
 
@@ -24,6 +24,7 @@
 	<?php endif; ?>
 	<script type="text/javascript">
 		var ps_base_uri = '<?php echo addslashes(__PS_BASE_URI__) ?>';
+		var ps_version = '<?php echo addslashes(_PS_INSTALL_VERSION_) ?>';
 	</script>
 </head>
 

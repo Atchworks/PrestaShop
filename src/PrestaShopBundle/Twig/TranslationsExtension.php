@@ -23,7 +23,11 @@
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShopBundle\Twig;
+
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Routing\RouterInterface;
 
 class TranslationsExtension extends \Twig_Extension
 {
@@ -36,6 +40,27 @@ class TranslationsExtension extends \Twig_Extension
      * @var \Psr\Log\LoggerInterface
      */
     public $logger;
+
+    /**
+     * @var ContainerInterface
+     */
+    private $container;
+
+    /**
+     * @var RouterInterface
+     */
+    private $router;
+
+    /**
+     * @var string
+     */
+    private $theme;
+
+    public function __construct(ContainerInterface $container, RouterInterface $router)
+    {
+        $this->container = $container;
+        $this->router = $router;
+    }
 
     /**
      * Returns a list of functions to add to the existing list.
@@ -51,15 +76,18 @@ class TranslationsExtension extends \Twig_Extension
     }
 
     /**
-     * Returns concatenated edit translation forms
+     * Returns concatenated edit translation forms.
      *
      * @param array $translationsTree
+     * @param null $themeName
+     *
      * @return string
      */
-    public function getTranslationsForms(array $translationsTree)
+    public function getTranslationsForms(array $translationsTree, $themeName = null)
     {
         $output = '';
         $viewProperties = $this->getSharedEditFormViewProperties();
+        $this->theme = $themeName;
 
         foreach ($translationsTree as $topLevelDomain => $tree) {
             $output .= $this->concatenateEditTranslationForm($tree, $viewProperties);
@@ -101,10 +129,14 @@ class TranslationsExtension extends \Twig_Extension
      * Returns a tree of translations key values.
      *
      * @param array $translationsTree
+     * @param null $themeName
+     *
      * @return string
      */
-    public function getTranslationsTree(array $translationsTree)
+    public function getTranslationsTree(array $translationsTree, $themeName = null)
     {
+        $this->theme = $themeName;
+
         $output = '';
         end($translationsTree);
         list($lastTranslationDomain) = each($translationsTree);
@@ -124,6 +156,7 @@ class TranslationsExtension extends \Twig_Extension
     /**
      * @param $tree
      * @param int $level
+     *
      * @return string
      */
     public function makeSubtree($tree, $level = 3)
@@ -153,14 +186,14 @@ class TranslationsExtension extends \Twig_Extension
                 if ($isLastPage) {
                     $output .= '</div>';
                 } elseif ((0 === $formIndex % $itemsPerPage) && ($formIndex > 0)) {
-                    $pageIndex++;
+                    ++$pageIndex;
 
                     // Close div with page class
                     $output .= '</div>';
-                    $output .= '<div class="page hide" data-status="inactive" data-page-index="' . $pageIndex . '">';
+                    $output .= '<div class="page hide" data-status="inactive" data-page-index="'.$pageIndex.'">';
                 }
 
-                $formIndex++;
+                ++$formIndex;
             }
 
             // Close div with page class when no message is available
@@ -182,38 +215,54 @@ class TranslationsExtension extends \Twig_Extension
     protected function getSharedEditFormViewProperties()
     {
         return array(
-            'label_edit' => $this->translator->trans('Edit', array(), 'AdminActions'),
-            'label_reset' => $this->translator->trans('Reset', array(), 'AdminActions'),
-            'notification_success' => $this->translator->trans('Translation successfully edited', array(),
-                'AdminNotificationsSuccess'),
-            'notification_error' => $this->translator->trans('Translation unsuccessfully edited', array(),
-                'AdminNotificationsError'),
+            'action' => $this->router->generate('admin_international_translations_edit'),
+            'label_edit' => $this->translator->trans('Save', array(), 'Admin.Actions'),
+            'label_reset' => $this->translator->trans('Reset', array(), 'Admin.Actions'),
+            'notification_success' => $this->translator->trans('Translation successfully updated', array(),
+                'Admin.International.Notification'),
+            'notification_error' => $this->translator->trans('Translation unsuccessfully updated', array(),
+                'Admin.International.Notification'),
         );
     }
 
     /**
      * @param $properties
+     *
      * @return mixed|string
      */
     protected function renderEditTranslationForm($properties)
     {
         list($domain, $locale) = explode('.', $properties['camelized_domain']);
         $translationValue = $this->getTranslationValue($properties['translation']);
-        $defaultTranslationValue = $this->getDefaultTranslationValue($properties['translation_key'], $domain, $locale,
-            $translationValue);
+        $defaultTranslationValue = $this->getDefaultTranslationValue(
+            $properties['translation_key'],
+            $domain, $locale,
+            $properties['translation']
+        );
 
-        return $this->render('form-edit-message.html.twig', array(
-                'default_translation_value' => htmlspecialchars($defaultTranslationValue, ENT_QUOTES),
+        return $this->container->get('templating')->render(
+            'PrestaShopBundle:Admin:Translations/include/form-edit-message.html.twig',
+            array(
+                'default_translation_value' => $defaultTranslationValue,
                 'domain' => $domain,
                 'edited_translation_value' => $translationValue,
+                'is_translated' => '' !== $translationValue,
+                'action' => $properties['action'],
                 'label_edit' => $properties['label_edit'],
                 'label_reset' => $properties['label_reset'],
                 'locale' => $locale,
                 'notification_error' => $properties['notification_error'],
                 'notification_success' => $properties['notification_success'],
-                'translation_key' => htmlspecialchars($properties['translation_key'], ENT_QUOTES),
+                'translation_key' => $properties['translation_key'],
+                'hash' => $this->getTranslationHash($domain, $properties['translation_key']),
+                'theme' => $this->theme,
             )
         );
+    }
+
+    protected function getTranslationHash($domain, $translationKey)
+    {
+        return md5($domain.$translationKey);
     }
 
     /**
@@ -221,6 +270,7 @@ class TranslationsExtension extends \Twig_Extension
      * @param $domain
      * @param $locale
      * @param $translationValue
+     *
      * @return array
      */
     protected function getDefaultTranslationValue($translationKey, $domain, $locale, $translationValue)
@@ -237,22 +287,17 @@ class TranslationsExtension extends \Twig_Extension
 
     /**
      * @param $translation
+     *
      * @return mixed
      */
     protected function getTranslationValue($translation)
     {
-        // Extract translation value from db if available
-        if (is_array($translation)) {
-            $translationValue = $translation['db'];
-        } else {
-            $translationValue = $translation;
-        }
-
-        return $translationValue;
+        return !empty($translation['db']) ? $translation['db'] : $translation['xlf'];
     }
 
     /**
      * @param $tree
+     *
      * @return bool
      */
     protected function hasMessages($tree)
@@ -274,12 +319,13 @@ class TranslationsExtension extends \Twig_Extension
      * @param $subdomain
      * @param $subtree
      * @param int $level
+     *
      * @return string
      */
     protected function concatenateSubtreeHeader($subdomain, $subtree, $level = 2)
     {
         $hasMessagesSubtree = $this->hasMessages($subtree);
-        $subject = $this->makeSubdomainPrefix($level) . $subdomain;
+        $subject = $subdomain;
 
         $id = null;
         if ($hasMessagesSubtree) {
@@ -287,26 +333,39 @@ class TranslationsExtension extends \Twig_Extension
         }
 
         $output = $this->tagSubject($subject, $level, $id);
+        if ($level === 3) {
+            $output = $this->replaceWarningPlaceholder($output, $subtree);
+        }
+        if ($level === 2) {
+            $output = str_replace(
+                '{{ missing translations warning }}',
+                $this->translator->trans('%d missing', array(), 'Admin.International.Feature'),
+                $output
+            );
+        }
 
         if ($hasMessagesSubtree) {
-            $output .= $this->render('button-toggle-messages-visibility.html.twig', array(
-                'label_show_messages' => $this->translator->trans('Show messages', array(), 'AdminActions'),
-                'label_hide_messages' => $this->translator->trans('Hide messages', array(), 'AdminActions')
-            ));
+            $output .= $this->container->get('templating')->render(
+                'PrestaShopBundle:Admin:Translations/include/button-toggle-messages-visibility.html.twig',
+                array(
+                    'label_show_messages' => $this->translator->trans('Show messages', array(), 'Admin.International.Feature'),
+                    'label_hide_messages' => $this->translator->trans('Hide messages', array(), 'Admin.International.Feature'),
+                )
+            );
 
             $output .= $this->getNavigation($this->parseDomain($subtree));
         }
 
-        $output .= '<div class="col-offset">';
-        $output .= $this->makeSubtree($subtree, $level + 1);
-        $output .= '</div>';
+        $formStart = $this->getTranslationsFormStart($subtree, $output);
+        $output = $this->container->get('templating')->render(
+            'PrestaShopBundle:Admin:Translations/include/translations-form-end.html.twig',
+            array(
+                'form_start' => $formStart,
+                'subtree' => $this->makeSubtree($subtree, $level + 1),
+            )
+        );
 
         if ($hasMessagesSubtree) {
-            $output .= $this->render('button-go-to-pagination-bar.html.twig', array(
-                'domain' => $id,
-                'label' => $this->translator->trans('Go to previous navigation menu', array(), 'AdminActions'),
-            ));
-
             // Close div with translation-domain class
             $output .= '</div>';
 
@@ -322,6 +381,110 @@ class TranslationsExtension extends \Twig_Extension
 
     /**
      * @param $subtree
+     * @param $output
+     * @return string
+     */
+    protected function getTranslationsFormStart(&$subtree, $output)
+    {
+        $id = '';
+        $parentAttribute = ' class="subdomains hide"';
+        if (array_key_exists('__fixed_length_id', $subtree)) {
+            $fixedLengthId = $subtree['__fixed_length_id'];
+            unset($subtree['__fixed_length_id']);
+            $id = ' id="' . $fixedLengthId . '" ';
+            $parentAttribute = ' data-parent-of="' . $fixedLengthId . '"';
+        }
+
+        $domainAttribute = '';
+        if (array_key_exists('__domain', $subtree)) {
+            $domainAttribute = ' data-domain="' . $subtree['__domain'] . '" ';
+            unset($subtree['__domain']);
+        }
+
+        $missingTranslationsAttribute = '';
+        if (array_key_exists('__metadata', $subtree)) {
+            $missingTranslations = $subtree['__metadata']['missing_translations'];
+            $missingTranslationsAttribute = ' data-missing-translations="' . $missingTranslations . '"';
+            unset($subtree['__metadata']);
+        }
+
+        return $this->container->get('templating')->render(
+            'PrestaShopBundle:Admin:Translations/include/translations-form-start.html.twig',
+            array(
+                'id' => $id,
+                'domain' => $domainAttribute,
+                'parent' => $parentAttribute,
+                'missing_translations' => $missingTranslationsAttribute,
+                'title' => $output,
+            )
+        );
+    }
+
+    /**
+     * @param $output
+     * @param $subtree
+     * @return string
+     */
+    protected function replaceWarningPlaceholder($output, $subtree)
+    {
+        $missingTranslationsMessage = '';
+        $missingTranslationsLongMessage = '';
+        $missingTranslationsClass = '';
+        if (array_key_exists('__metadata', $subtree) && $subtree['__metadata']['missing_translations'] > 0) {
+            $missingTranslationsCount = $subtree['__metadata']['missing_translations'];
+            $domain = $subtree['__metadata']['domain'];
+
+            $missingTranslationsMessage =
+                '<div class="missing-translations-short-message pull-right hide">'.
+                $this->translator->trans('%nb_translations% missing',
+                    array('%nb_translations%' => $missingTranslationsCount),
+                    'Admin.International.Feature'
+                ).
+                '</div>'
+            ;
+            $missingTranslationsLongMessage =
+                '<div class="missing-translations-long-message hide">' .
+                $this->translator->trans(
+                    '%nb_translations% translations are missing in %domain%',
+                    array(
+                        '%nb_translations%' => $missingTranslationsCount,
+                        '%domain%' => $domain
+                    ),
+                    'Admin.International.Feature'
+                ).
+                '</div>'
+            ;
+            $missingTranslationsClass = ' missing-translations';
+        }
+
+        $warning = str_replace(
+            array(
+                '{{ missing translations message }}',
+                '{{ missing translations long message }}',
+            ),
+            array(
+                $missingTranslationsMessage,
+                $missingTranslationsLongMessage,
+            ),
+            '{{ missing translations message }}{{ missing translations long message }}'
+        );
+
+        return str_replace(
+            array(
+                '{{ missing translations warning }}',
+                '{{ missing translations class }}',
+            ),
+            array(
+                $warning,
+                $missingTranslationsClass,
+            ),
+            $output
+        );
+    }
+
+    /**
+     * @param $subtree
+     *
      * @return mixed
      */
     protected function parseDomain($subtree)
@@ -334,20 +497,27 @@ class TranslationsExtension extends \Twig_Extension
 
     /**
      * @param $id
+     *
      * @return string
      */
-    protected function getNavigation($id) {
-        return $this->render('pagination-bar.html.twig', array('page_id' => $id));
+    protected function getNavigation($id)
+    {
+        return $this->container->get('templating')->render(
+            'PrestaShopBundle:Admin:Translations/include/pagination-bar.html.twig',
+            array('page_id' => $id)
+        );
     }
 
     /**
      * @param $view
      * @param array $parameters
+     *
      * @return mixed|string
      */
-    protected function render($view, $parameters = array()) {
-        $viewsDirectory = __DIR__ . '/../Resources/views/Admin/Translations/include';
-        $viewPath = $viewsDirectory . '/' . $view;
+    protected function render($view, $parameters = array())
+    {
+        $viewsDirectory = __DIR__.'/../Resources/views/Admin/Translations/include';
+        $viewPath = $viewsDirectory.'/'.$view;
         if (!file_exists($viewPath)) {
             $message = sprintf('A view ("%s") does not exist.', $viewPath);
             $this->logger->error($message);
@@ -356,52 +526,54 @@ class TranslationsExtension extends \Twig_Extension
         $view = file_get_contents($viewPath);
 
         foreach ($parameters as $key => $value) {
-            $view = str_replace('{{ ' . $key . ' }}', $value, $view);
+            $view = str_replace('{{ '.$key.' }}', $value, $view);
         }
 
         return $view;
     }
 
     /**
-     * @param $level
-     * @return string
-     */
-    protected function makeSubdomainPrefix($level)
-    {
-        $subdomainPrefix = '';
-        if ($level > 1) {
-            $subdomainPrefix = '<span class="separator">' . str_repeat(' > ', $level - 1) . ' </span>';
-        }
-
-        return $subdomainPrefix;
-    }
-
-    /**
      * @param $subject
      * @param $level
      * @param null $id
+     *
      * @return string
      */
     protected function tagSubject($subject, $level, $id = null)
     {
-        $openingTag = '';
-        $closingTag = ' ';
+        $openingTag = '<h2 class="domain-part"><i class="material-icons delegate-toggle-messages">&#xE315;</i>'.
+            '<span class="delegate-toggle-messages{{ missing translations class }}">';
+        $closingTag = '</span>{{ missing translations warning }}</h2>';
 
         if (2 === $level) {
-            $openingTag = '<h2>';
-            $closingTag = '</h2>';
+            $openingTag = '<h2 class="domain-first-part"><i class="material-icons">&#xE315;</i><span>';
+            $closingTag = '</span></h2>'.
+                '<div class="domain-actions">' .
+                    '<i class="material-icons visibility-on">&#xE8F4;</i>'.
+                    '<i class="material-icons visibility-off hide">&#xE8F5;</i>'.
+                    '<span class="btn-show-messages">' .
+                        $this->translator->trans('Show messages', array(), 'Admin.International.Feature') .
+                    '</span>'.
+                    '<span class="btn-hide-messages hide">' .
+                        $this->translator->trans('Hide messages', array(), 'Admin.International.Feature') .
+                    '</span>'.
+                    '<span class="missing-translations pull-right hide">'.
+                    '{{ missing translations warning }}'.
+                    '</span>'.
+                '</div>'
+            ;
         }
 
         if ($id) {
-            $openingTag = '<span id="_' . $id . '">';
+            $openingTag = '<span id="_'.$id.'">';
             $closingTag = '</span>';
 
             if (2 === $level) {
-                $openingTag = '<h2>' . $openingTag;
-                $closingTag = $closingTag . '</h2>';
+                $openingTag = '<h2>'.$openingTag;
+                $closingTag = $closingTag.'</h2>';
             }
         }
 
-        return $openingTag . $subject . $closingTag;
+        return $openingTag.$subject.$closingTag;
     }
 }

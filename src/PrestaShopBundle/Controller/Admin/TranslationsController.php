@@ -1,6 +1,6 @@
 <?php
 /**
- * 2007-2016 PrestaShop
+ * 2007-2016 PrestaShop.
  *
  * NOTICE OF LICENSE
  *
@@ -23,25 +23,29 @@
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShopBundle\Controller\Admin;
 
 use Doctrine\Common\Util\Inflector;
 use PrestashopBundle\Entity\Translation;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
-use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 /**
- * Admin controller for the International pages
+ * Admin controller for the International pages.
  */
 class TranslationsController extends FrameworkBundleAdminController
 {
     /**
-     * List translations keys and corresponding editable values
+     * List translations keys and corresponding editable values.
      *
      * @Template
+     *
      * @param Request $request
+     *
      * @return array Template vars
      */
     public function listAction(Request $request)
@@ -53,13 +57,72 @@ class TranslationsController extends FrameworkBundleAdminController
         $catalogue = $this->getTranslationsCatalogue($request);
         $translationsTree = $this->makeTranslationsTree($catalogue);
 
-        return array('translationsTree' => $translationsTree);
+        return array(
+            'translationsTree' => $translationsTree,
+            'theme' => $this->getSelectedTheme($request),
+            'requestParams' => array(
+                'lang' => $request->get('lang'),
+                'type' => $request->get('type'),
+                'theme' => $request->get('selected-theme'),
+            ),
+            'total_remaining_translations' => $this->get('translator')->trans(
+                '%nb_translations% missing',
+                array('%nb_translations%' => '%d'),
+                'Admin.International.Feature'
+            ),
+            'total_translations' => $this->get('translator')->trans(
+                '%d expressions',
+                array(),
+                'Admin.International.Feature'
+            )
+        );
     }
 
     /**
-     * Edit a translation value
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function messagesFragmentsAction(Request $request)
+    {
+        $theme = $this->getSelectedTheme($request);
+        $catalogue = $this->getTranslationsCatalogue($request);
+        $translationsTree = $this->makeTranslationsTree($catalogue);
+
+        $translationsFormsView = $this->renderView(
+            'PrestaShopBundle:Admin/Translations/include:translations-forms.html.twig',
+            array(
+                'translationsTree' => $translationsTree,
+                'theme' => $theme,
+            )
+        );
+        $translationsTreeView = $this->renderView(
+            'PrestaShopBundle:Admin/Translations/include:translations-tree.html.twig',
+            array(
+                'translationsTree' => $translationsTree,
+                'theme' => $theme,
+            )
+        );
+
+        return new JsonResponse(array(
+            'translations_forms' => $translationsFormsView,
+            'translations_tree' => $translationsTreeView,
+        ));
+    }
+
+    private function getSelectedTheme(Request $request)
+    {
+        if ($request->get('type') === 'themes') {
+            return $request->get('selected-theme');
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Edit a translation value.
      *
      * @param Request $request
+     *
      * @return JsonResponse
      */
     public function editAction(Request $request)
@@ -69,13 +132,39 @@ class TranslationsController extends FrameworkBundleAdminController
 
         return new JsonResponse(array(
             'successful_update' => $updatedTranslationSuccessfully,
-            'translation_value' => $request->request->get('translation_value')
+            'translation_value' => $request->request->get('translation_value'),
         ));
     }
 
+    /**
+     * extract theme using locale and theme name.
+     *
+     * @param Request $request
+     *
+     * @return file to be downloaded
+     */
+    public function exportThemeAction(Request $request)
+    {
+        $themeName = $request->request->get('theme-name');
+        $isoCode = $request->request->get('iso_code');
+
+        $langRepository = $this->get('prestashop.core.admin.lang.repository');
+        $locale = $langRepository->getLocaleByIsoCode($isoCode);
+
+        $themeExporter = $this->get('prestashop.translation.theme.exporter');
+        $zipFile = $themeExporter->createZipArchive($themeName, $locale);
+
+        $response = new BinaryFileResponse($zipFile);
+        $response->deleteFileAfterSend(true);
+
+        $themeExporter->cleanArtifacts($themeName);
+
+        return $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT);
+    }
 
     /**
      * @param Request $request
+     *
      * @return bool
      */
     protected function saveTranslationMessage(Request $request)
@@ -85,20 +174,31 @@ class TranslationsController extends FrameworkBundleAdminController
 
         $lang = $this->findLanguageByLocale($requestParams['locale']);
 
+        /**
+         * @var \PrestaShopBundle\Entity\Translation $translation
+         */
         $translation = $entityManager->getRepository('PrestaShopBundle:Translation')
             ->findOneBy(array(
                 'lang' => $lang,
                 'domain' => $requestParams['domain'],
-                'key' => $requestParams['translation_key']
+                'key' => $requestParams['translation_key'],
+                'theme' => $requestParams['theme']
             ));
 
+        $theme = $requestParams['theme'];
+        if (empty($requestParams['theme'])) {
+            $theme = null;
+        }
+
         if (is_null($translation)) {
-            $translation = new Translation;
+            $translation = new Translation();
             $translation->setDomain($requestParams['domain']);
             $translation->setLang($lang);
             $translation->setKey(htmlspecialchars_decode($requestParams['translation_key'], ENT_QUOTES));
             $translation->setTranslation($requestParams['translation_value']);
+            $translation->setTheme($theme);
         } else {
+            $translation->setTheme($theme);
             $translation->setTranslation($requestParams['translation_value']);
         }
 
@@ -132,6 +232,7 @@ class TranslationsController extends FrameworkBundleAdminController
 
     /**
      * @param $locale
+     *
      * @return mixed
      */
     protected function findLanguageByLocale($locale)
@@ -142,50 +243,48 @@ class TranslationsController extends FrameworkBundleAdminController
 
     /**
      * @param Request $request
+     *
      * @return \Symfony\Component\Translation\MessageCatalogue
+     *
      * @throws \Exception
      */
     protected function getTranslationsCatalogue(Request $request)
     {
-        $lang = $request->request->get('lang');
+        $lang = $request->get('lang');
+        $type = $request->get('type');
+        $theme = $request->get('selected-theme');
 
-        $translator = $this->container->get('translator');
+        $factory = $this->get('ps.translations_factory');
+        if ($theme !== 'classic' && $this->requiresThemeTranslationsFactory($theme, $type)) {
+            $factory = $this->get('ps.theme_translations_factory');
+        }
 
         $locale = $this->langToLocale($lang);
 
-        $finder = new Finder();
-        $translationFiles = $finder->files()->in($this->getResourcesDirectory() . '/translations/' . $locale);
-
-        $translationLocale = str_replace('-', '_', $locale);
-
-        if (count($translationFiles) === 0) {
-            throw new \Exception('There is no translation file available');
-        }
-
-        foreach ($translationFiles as $file) {
-            $translator->addResource('xlf', $file->getPathname(), $translationLocale, $file->getBasename('.xlf'));
-        }
-
-        $catalogue = $translator->getCatalogue($translationLocale)->all();
-        $databaseCatalogue = $this->getTranslationsInDatabase($locale);
-
-        foreach ($databaseCatalogue as $domain => $messages) {
-            foreach ($messages as $translationKey => $translationValue) {
-                $catalogue[$domain][$translationKey] = array(
-                    // Xliff-based translation stored for reset action
-                    'xlf' => $catalogue[$domain][$translationKey],
-                    'db' => $translationValue
-                );
+        if ($this->requiresThemeTranslationsFactory($theme, $type)) {
+            if ('classic' === $theme) {
+                $type = 'front';
+            } else {
+                $type = $theme;
             }
         }
 
-        ksort($catalogue);
+        return $factory->createTranslationsArray($type, $locale);
+    }
 
-        return $catalogue;
+    /**
+     * @param $theme
+     * @param $type
+     * @return bool
+     */
+    private function requiresThemeTranslationsFactory($theme, $type)
+    {
+        return $type === 'themes' && !is_null($theme);
     }
 
     /**
      * @param $catalogue
+     *
      * @return array
      */
     protected function makeTranslationsTree(array $catalogue)
@@ -200,21 +299,50 @@ class TranslationsController extends FrameworkBundleAdminController
             list($basename) = explode('.', $tableisedDomain);
             $parts = array_reverse(explode('_', $basename));
 
+            $totalParts = count($parts);
             $subtree = &$translationsTree;
 
-            while (count($parts) > 0) {
-                $subdomain = ucfirst(array_pop($parts));
-                if (array_key_exists($subdomain, $flippedUnbreakableWords)) {
-                    $subdomain = $flippedUnbreakableWords[$subdomain];
+            if ($totalParts - 2 < 0) {
+                $totalParts = 2;
+                $parts = array($parts[0], 'Admin');
+            }
+
+            $firstDomainPart = $parts[count($parts) - 1];
+
+            $condition = count($parts) > $totalParts - 2;
+            $depth = 0;
+
+            while ($condition) {
+                if ($depth === 1) {
+                    list($subdomain) = explode('.', str_replace(ucfirst($firstDomainPart), '', $domain));
+                    array_pop($parts);
+                } else {
+                    $subdomain = ucfirst(array_pop($parts));
+                    if (array_key_exists($subdomain, $flippedUnbreakableWords)) {
+                        $subdomain = $flippedUnbreakableWords[$subdomain];
+                    }
                 }
 
                 if (!array_key_exists($subdomain, $subtree)) {
                     $subtree[$subdomain] = array();
                 }
                 $subtree = &$subtree[$subdomain];
+
+                $condition = count($parts) > $totalParts - 2;
+                $depth++;
+
+                if ($depth === 2) {
+                    $subtree['__fixed_length_id'] = '_' . sha1($domain);
+                    list($subtree['__domain']) = explode('.', $domain);
+
+                    $subtree['__metadata'] = $messages['__metadata'];
+                    $subtree['__metadata']['domain'] = $subtree['__domain'];
+                    unset($messages['__metadata']);
+                }
             }
 
             $subtree['__messages'] = array($domain => $messages);
+            unset($catalogue[$domain]);
         }
 
         return $translationsTree;
@@ -223,9 +351,10 @@ class TranslationsController extends FrameworkBundleAdminController
     /**
      * There are domains containing multiple words,
      * hence these domains should not be split from those words in camelcase.
-     * The latter are replaced from a list of unbreakable words
+     * The latter are replaced from a list of unbreakable words.
      *
      * @param $domain
+     *
      * @return string
      */
     protected function makeDomainUnbreakable($domain)
@@ -253,9 +382,12 @@ class TranslationsController extends FrameworkBundleAdminController
             'BankWire' => 'Bankwire',
             'BlockBestSellers' => 'Blockbestsellers',
             'BlockCart' => 'Blockcart',
+            'CheckPayment' => 'Checkpayment',
             'ContactInfo' => 'Contactinfo',
             'EmailSubscription' => 'Emailsubscription',
+            'FacetedSearch' => 'Facetedsearch',
             'FeaturedProducts' => 'Featuredproducts',
+            'LegalCompliance' => 'Legalcompliance',
             'ShareButtons' => 'Sharebuttons',
             'ShoppingCart' => 'Shoppingcart',
             'SocialFollow' => 'Socialfollow',
@@ -272,19 +404,20 @@ class TranslationsController extends FrameworkBundleAdminController
 
     /**
      * @param $locale
+     * @param $theme
      * @return array
      */
-    protected function getTranslationsInDatabase($locale)
+    protected function getTranslationsInDatabase($locale, $theme = null)
     {
-        $entityManager = $this->getDoctrine()->getManager();
-        $translations = $entityManager->getRepository('PrestaShopBundle:Translation')
-            ->findBy(array(
-                'lang' => $this->findLanguageByLocale($locale),
-            ));
+        $translationRepository = $this->get('prestashop.core.admin.translation.repository');
+        $translations = $translationRepository->findByLanguageAndTheme(
+            $this->findLanguageByLocale($locale),
+            $theme
+        );
 
         $translationsMap = array();
         array_map(function ($translation) use (&$translationsMap, $locale) {
-            $domainLocale = $translation->getDomain() . '.' . $locale;
+            $domainLocale = $translation->getDomain().'.'.$locale;
             if (!array_key_exists($domainLocale, $translationsMap)) {
                 $translationsMap[$domainLocale] = array();
             }

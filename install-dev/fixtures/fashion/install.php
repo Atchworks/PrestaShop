@@ -24,18 +24,20 @@
  * International Registered Trademark & Property of PrestaShop SA
  */
 
+use PrestaShopBundle\Install\XmlLoader;
+
 /**
  * This class is only here to show the possibility of extending InstallXmlLoader, which is the
  * class parsing all XML files, copying all images, etc.
  *
  * Please read documentation in ~/install/dev/ folder if you want to customize PrestaShop install / fixtures.
  */
-class InstallFixturesFashion extends InstallXmlLoader
+class InstallFixturesFashion extends XmlLoader
 {
     public function createEntityCustomer($identifier, array $data, array $data_lang)
     {
         if ($identifier == 'John') {
-            $data['passwd'] = Tools::encrypt('123456789');
+            $data['passwd'] = Tools::hash('123456789');
         }
 
         return $this->createEntity('customer', $identifier, 'Customer', $data, $data_lang);

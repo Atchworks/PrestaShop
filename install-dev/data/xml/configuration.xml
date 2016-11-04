@@ -29,9 +29,6 @@
   <configuration id="PS_LAST_QTIES" name="PS_LAST_QTIES">
     <value>3</value>
   </configuration>
-  <configuration id="PS_CART_REDIRECT" name="PS_CART_REDIRECT">
-    <value>1</value>
-  </configuration>
   <configuration id="PS_CONDITIONS" name="PS_CONDITIONS">
     <value>1</value>
   </configuration>
@@ -819,6 +816,12 @@ Country</value>
     </configuration>
     <configuration id="PS_ACTIVE_CRONJOB_EXCHANGE_RATE" name="PS_ACTIVE_CRONJOB_EXCHANGE_RATE">
         <value>0</value>
+    </configuration>
+    <configuration id="PS_ORDER_RECALCULATE_SHIPPING" name="PS_ORDER_RECALCULATE_SHIPPING">
+      <value>1</value>
+    </configuration>
+    <configuration id="PS_MAINTENANCE_TEXT" name="PS_MAINTENANCE_TEXT">
+      <value/>
     </configuration>
   </entities>
 </entity_configuration>

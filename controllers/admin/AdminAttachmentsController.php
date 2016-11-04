@@ -43,8 +43,8 @@ class AdminAttachmentsControllerCore extends AdminController
         $this->addRowAction('view');
         $this->addRowAction('delete');
 
-        $this->_select = 'IFNULL(virtual.products, 0) as products';
-        $this->_join = 'LEFT JOIN (SELECT id_attachment, COUNT(*) as products FROM '._DB_PREFIX_.'product_attachment GROUP BY id_attachment) virtual ON a.id_attachment = virtual.id_attachment';
+        $this->_select = 'IFNULL(virtual_product_attachment.products, 0) as products';
+        $this->_join = 'LEFT JOIN (SELECT id_attachment, COUNT(*) as products FROM '._DB_PREFIX_.'product_attachment GROUP BY id_attachment) virtual_product_attachment ON a.id_attachment = virtual_product_attachment.id_attachment';
         $this->_use_found_rows = false;
 
         parent::__construct();
@@ -70,7 +70,7 @@ class AdminAttachmentsControllerCore extends AdminController
             'products' => array(
                 'title' => $this->trans('Associated with', array(), 'Admin.Catalog.Feature'),
                 'suffix' => $this->trans('product(s)', array(), 'Admin.Catalog.Feature'),
-                'filter_key' => 'virtual!products',
+                'filter_key' => 'virtual_product_attachment!products',
             ),
         );
 
@@ -88,7 +88,7 @@ class AdminAttachmentsControllerCore extends AdminController
         parent::setMedia();
 
         $this->addJs(_PS_JS_DIR_.'/admin/attachments.js');
-        Media::addJsDefL('confirm_text', $this->trans('This attachment is associated with the following products, do you really want to  delete it?', array(), 'Admin.Catalog.Notification'));
+        Media::addJsDefL('confirm_text', $this->trans('This file is associated with the following products, do you really want to  delete it?', array(), 'Admin.Catalog.Notification'));
     }
 
     public static function displayHumanReadableSize($size)
@@ -101,7 +101,7 @@ class AdminAttachmentsControllerCore extends AdminController
         if (empty($this->display)) {
             $this->page_header_toolbar_btn['new_attachment'] = array(
                 'href' => self::$currentIndex.'&addattachment&token='.$this->token,
-                'desc' => $this->trans('Add new attachment', array(), 'Admin.Catalog.Feature'),
+                'desc' => $this->trans('Add new file', array(), 'Admin.Catalog.Feature'),
                 'icon' => 'process-icon-new'
             );
         }
@@ -131,7 +131,7 @@ class AdminAttachmentsControllerCore extends AdminController
 
         $this->fields_form = array(
             'legend' => array(
-                'title' => $this->trans('Attachment', array(), 'Admin.Catalog.Feature'),
+                'title' => $this->trans('Add new file', array(), 'Admin.Catalog.Feature'),
                 'icon' => 'icon-paper-clip'
             ),
             'input' => array(

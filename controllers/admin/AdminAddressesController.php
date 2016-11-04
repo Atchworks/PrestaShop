@@ -71,7 +71,7 @@ class AdminAddressesControllerCore extends AdminController
             'firstname' => array('title' => $this->trans('First Name', array(), 'Admin.Global'), 'filter_key' => 'a!firstname'),
             'lastname' => array('title' => $this->trans('Last Name', array(), 'Admin.Global'), 'filter_key' => 'a!lastname'),
             'address1' => array('title' => $this->trans('Address', array(), 'Admin.Global')),
-            'postcode' => array('title' => $this->trans('Zip/Postal Code', array(), 'Admin.Global'), 'align' => 'right'),
+            'postcode' => array('title' => $this->trans('Zip/postal code', array(), 'Admin.Global'), 'align' => 'right'),
             'city' => array('title' => $this->trans('City', array(), 'Admin.Global')),
             'country' => array('title' => $this->trans('Country', array(), 'Admin.Global'), 'type' => 'select', 'list' => $this->countries_array, 'filter_key' => 'cl!id_country'));
 
@@ -125,11 +125,11 @@ class AdminAddressesControllerCore extends AdminController
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Identification Number', array(), 'Admin.OrdersCustomers.Feature'),
+                    'label' => $this->trans('Identification number', array(), 'Admin.OrdersCustomers.Feature'),
                     'name' => 'dni',
                     'required' => false,
                     'col' => '4',
-                    'hint' => $this->trans('DNI / NIF / NIE', array(), 'Admin.OrdersCustomers.Feature')
+                    'hint' => $this->trans('The national ID card number of this person, or a unique tax identification number.', array(), 'Admin.OrdersCustomers.Feature')
                 ),
                 array(
                     'type' => 'text',
@@ -270,7 +270,7 @@ class AdminAddressesControllerCore extends AdminController
             } elseif ($addr_field_item == 'postcode') {
                 $temp_fields[] = array(
                     'type' => 'text',
-                    'label' => $this->trans('Zip/Postal Code', array(), 'Admin.Global'),
+                    'label' => $this->trans('Zip/postal code', array(), 'Admin.Global'),
                     'name' => 'postcode',
                     'col' => '2',
                     'required' => true,
@@ -415,6 +415,9 @@ class AdminAddressesControllerCore extends AdminController
             if (!Db::getInstance()->Execute('UPDATE '._DB_PREFIX_.'orders SET `id_address_'.bqSQL($address_type).'` = '.(int)$this->object->id.' WHERE `id_order` = '.(int)$id_order)) {
                 $this->errors[] = $this->trans('An error occurred while linking this address to its order.', array(), 'Admin.OrdersCustomers.Notification');
             } else {
+                //update order shipping cost
+                $order = new Order($id_order);
+                $order->refreshShippingCost();
                 Tools::redirectAdmin(urldecode(Tools::getValue('back')).'&conf=4');
             }
         }

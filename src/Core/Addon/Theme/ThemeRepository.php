@@ -23,6 +23,7 @@
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+
 namespace PrestaShop\PrestaShop\Core\Addon\Theme;
 
 use PrestaShop\PrestaShop\Core\Addon\AddonListFilter;
@@ -30,17 +31,20 @@ use PrestaShop\PrestaShop\Core\Addon\AddonListFilterType;
 use PrestaShop\PrestaShop\Core\Addon\AddonListFilterStatus;
 use PrestaShop\PrestaShop\Core\Addon\AddonRepositoryInterface;
 use PrestaShop\PrestaShop\Core\ConfigurationInterface;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Yaml\Parser;
 use Shop;
 
 class ThemeRepository implements AddonRepositoryInterface
 {
     private $appConfiguration;
+    private $filesystem;
     private $shop;
 
-    public function __construct(ConfigurationInterface $configuration, Shop $shop)
+    public function __construct(ConfigurationInterface $configuration, Filesystem $filesystem, Shop $shop = null)
     {
         $this->appConfiguration = $configuration;
+        $this->filesystem = $filesystem;
         $this->shop = $shop;
     }
 
@@ -48,10 +52,15 @@ class ThemeRepository implements AddonRepositoryInterface
     {
         $dir = $this->appConfiguration->get('_PS_ALL_THEMES_DIR_').$name;
 
-        $jsonConfiguration = $this->appConfiguration->get('_PS_CONFIG_DIR_').'themes/'.$name.'/shop'.$this->shop->id.'.json';
-        if (file_exists($jsonConfiguration)) {
+        if ($this->shop) {
+            $jsonConf = $this->appConfiguration->get('_PS_CONFIG_DIR_').'themes/'.$name.'/shop'.$this->shop->id.'.json';
+        } else {
+            $jsonConf = '';
+        }
+
+        if ($this->filesystem->exists($jsonConf)) {
             $data = $this->getConfigFromFile(
-                $jsonConfiguration,
+                $jsonConf,
                 $name
             );
         } else {
@@ -62,7 +71,6 @@ class ThemeRepository implements AddonRepositoryInterface
         }
 
         $data['directory'] = $dir;
-        $data['physical_uri'] = $this->shop->physical_uri;
 
         return new Theme($data);
     }
@@ -105,10 +113,10 @@ class ThemeRepository implements AddonRepositoryInterface
 
     private function getThemesOnDisk()
     {
-        $suffix = 'preview.png';
+        $suffix = 'config/theme.yml';
         $themeDirectories = glob($this->appConfiguration->get('_PS_ALL_THEMES_DIR_').'*/'.$suffix);
 
-        $themes = [];
+        $themes = array();
         foreach ($themeDirectories as $directory) {
             $name = basename(substr($directory, 0, -strlen($suffix)));
             $theme = $this->getInstanceByName($name);
@@ -122,7 +130,7 @@ class ThemeRepository implements AddonRepositoryInterface
 
     private function getConfigFromFile($file, $name)
     {
-        if (!file_exists($file)) {
+        if (!$this->filesystem->exists($file)) {
             throw new \PrestaShopException(sprintf('[ThemeRepository] Theme configuration file not found for theme `%s`.', $name));
         }
 

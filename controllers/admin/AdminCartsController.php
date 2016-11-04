@@ -45,7 +45,7 @@ class AdminCartsControllerCore extends AdminController
         $this->_orderWay = 'DESC';
 
         $this->_select = 'CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) `customer`, a.id_cart total, ca.name carrier,
-		IF (IFNULL(o.id_order, \''.$this->trans('Non ordered', array(), 'Admin.OrdersCustomers.Feature').'\') = \''.$this->trans('Non ordered', array(), 'Admin.OrdersCustomers.Feature').'\', IF(TIME_TO_SEC(TIMEDIFF(\''.pSQL(date('Y-m-d H:i:00', time())).'\', a.`date_add`)) > 86400, \''.$this->trans('Abandoned cart', array(), 'Admin.OrdersCustomers.Feature').'\', \''.$this->l('Non ordered', array(), 'Admin.OrdersCustomers.Feature').'\'), o.id_order) AS status, IF(o.id_order, 1, 0) badge_success, IF(o.id_order, 0, 1) badge_danger, IF(co.id_guest, 1, 0) id_guest';
+		IF (IFNULL(o.id_order, \''.$this->trans('Non ordered', array(), 'Admin.OrdersCustomers.Feature').'\') = \''.$this->trans('Non ordered', array(), 'Admin.OrdersCustomers.Feature').'\', IF(TIME_TO_SEC(TIMEDIFF(\''.pSQL(date('Y-m-d H:i:00', time())).'\', a.`date_add`)) > 86400, \''.$this->trans('Abandoned cart', array(), 'Admin.OrdersCustomers.Feature').'\', \''.$this->trans('Non ordered', array(), 'Admin.OrdersCustomers.Feature').'\'), o.id_order) AS status, IF(o.id_order, 1, 0) badge_success, IF(o.id_order, 0, 1) badge_danger, IF(co.id_guest, 1, 0) id_guest';
         $this->_join = 'LEFT JOIN '._DB_PREFIX_.'customer c ON (c.id_customer = a.id_customer)
 		LEFT JOIN '._DB_PREFIX_.'currency cu ON (cu.id_currency = a.id_currency)
 		LEFT JOIN '._DB_PREFIX_.'carrier ca ON (ca.id_carrier = a.id_carrier)
@@ -53,7 +53,7 @@ class AdminCartsControllerCore extends AdminController
 		LEFT JOIN `'._DB_PREFIX_.'connections` co ON (a.id_guest = co.id_guest AND TIME_TO_SEC(TIMEDIFF(\''.pSQL(date('Y-m-d H:i:00', time())).'\', co.`date_add`)) < 1800)';
 
         if (Tools::getValue('action') && Tools::getValue('action') == 'filterOnlyAbandonedCarts') {
-            $this->_having = 'status = \''.$this->l('Abandoned cart').'\'';
+            $this->_having = 'status = \''.$this->trans('Abandoned cart', array(), 'Admin.OrdersCustomers.Feature').'\'';
         } else {
             $this->_use_found_rows = false;
         }
@@ -95,15 +95,18 @@ class AdminCartsControllerCore extends AdminController
                 'class' => 'fixed-width-lg',
                 'filter_key' => 'a!date_add'
             ),
-            'id_guest' => array(
+        );
+
+        if (Configuration::get('PS_GUEST_CHECKOUT_ENABLED')) {
+            $this->fields_list['id_guest'] = array(
                 'title' => $this->trans('Online', array(), 'Admin.Global'),
                 'align' => 'text-center',
                 'type' => 'bool',
                 'havingFilter' => true,
                 'class' => 'fixed-width-xs',
-                'icon' => array(0 => 'icon-', 1 => 'icon-user')
-            )
-        );
+            );
+        }
+
         $this->shopLinkType = 'shop';
 
         $this->bulk_actions = array(
@@ -452,10 +455,10 @@ class AdminCartsControllerCore extends AdminController
             if (isset($product) && $product->id) {
                 if (($id_product_attribute = Tools::getValue('id_product_attribute')) != 0) {
                     if (!Product::isAvailableWhenOutOfStock($product->out_of_stock) && !Attribute::checkAttributeQty((int)$id_product_attribute, (int)$qty)) {
-                        $errors[] = $this->trans('There is not enough product in stock.', array(), 'Admin.Catalog.Notification');
+                        $errors[] = $this->trans('There are not enough products in stock.', array(), 'Admin.Catalog.Notification');
                     }
                 } elseif (!$product->checkQty((int)$qty)) {
-                    $errors[] = $this->trans('There is not enough product in stock.', array(), 'Admin.Catalog.Notification');
+                    $errors[] = $this->trans('There are not enough products in stock.', array(), 'Admin.Catalog.Notification');
                 }
                 if (!($id_customization = (int)Tools::getValue('id_customization', 0)) && !$product->hasAllRequiredCustomizableFields()) {
                     $errors[] = $this->trans('Please fill in all the required fields.', array(), 'Admin.Notifications.Error');

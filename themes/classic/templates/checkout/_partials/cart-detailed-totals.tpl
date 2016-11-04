@@ -4,7 +4,7 @@
     {foreach from=$cart.subtotals item="subtotal"}
       {if $subtotal.value && $subtotal.type !== 'tax'}
         <div class="cart-summary-line" id="cart-subtotal-{$subtotal.type}">
-          <span class="label">
+          <span class="label{if 'products' === $subtotal.type} js-subtotal{/if}">
             {if 'products' == $subtotal.type}
               {$cart.summary_string}
             {else}
@@ -12,6 +12,9 @@
             {/if}
           </span>
           <span class="value">{$subtotal.value}</span>
+          {if $subtotal.type === 'shipping'}
+              <div><small class="value">{hook h='displayCheckoutSubtotalDetails' subtotal=$subtotal}</small></div>
+          {/if}
         </div>
       {/if}
     {/foreach}

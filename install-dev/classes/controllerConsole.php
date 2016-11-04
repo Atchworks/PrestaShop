@@ -1,6 +1,6 @@
 <?php
 /**
- * 2007-2015 PrestaShop
+ * 2007-2015 PrestaShop.
  *
  * NOTICE OF LICENSE
  *
@@ -24,6 +24,8 @@
  * International Registered Trademark & Property of PrestaShop SA
  */
 
+use PrestaShopBundle\Install\LanguageList;
+use PrestaShopBundle\Install\AbstractInstall;
 
 abstract class InstallControllerConsole
 {
@@ -57,18 +59,18 @@ abstract class InstallControllerConsole
     public $language;
 
     /**
-     * @var InstallAbstractModel
+     * @var AbstractInstall
      */
-    public $model;
+    protected $model_install;
 
     /**
-     * Validate current step
+     * Validate current step.
      */
     abstract public function validate();
 
     final public static function execute($argc, $argv)
     {
-        if (!($argc-1)) {
+        if (!($argc - 1)) {
             $available_arguments = Datas::getInstance()->getArgs();
             echo 'Arguments available:'."\n";
             foreach ($available_arguments as $key => $arg) {
@@ -117,14 +119,12 @@ abstract class InstallControllerConsole
 
         // Set current language
         $this->language = LanguageList::getInstance();
-        Context::getContext()->language =  $this->language;
-        Context::getContext()->locale =  $this->language->locale;
+        Context::getContext()->language = $this->language->getLanguage($this->datas->language);
 
         $this->translator = Context::getContext()->getTranslator();
 
         if (!$this->datas->language) {
             die('No language defined');
-
         }
         $this->language->setLanguage($this->datas->language);
 
@@ -132,7 +132,7 @@ abstract class InstallControllerConsole
     }
 
     /**
-     * Initialize model
+     * Initialize model.
      */
     public function init()
     {

@@ -148,7 +148,13 @@ class HelperListCore extends Helper
         $this->_list = $list;
         $this->fields_list = $fields_display;
 
-        $this->orderBy = preg_replace('/^([a-z _]*!)/Ui', '', $this->orderBy);
+        $patternsOrderBy = array(
+            '/^([a-z _]*!)/Ui',     // remove a. for example
+            '/^([a-z _]*\.)/Ui',    // remove a! for example
+            '/`/',                  // remove ` char
+        );
+        $this->orderBy = preg_replace($patternsOrderBy, '', $this->orderBy);
+
         $this->orderWay = preg_replace('/^([a-z _]*!)/Ui', '', $this->orderWay);
 
         $this->tpl->assign(array(
@@ -332,8 +338,13 @@ class HelperListCore extends Helper
             }
         }
 
+        $showShopColumn = $this->shopLinkType;
+
+        $isMultiShopActive = Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE');
+
         $this->content_tpl->assign(array_merge($this->tpl_vars, array(
-            'shop_link_type' => $this->shopLinkType,
+            'shop_link_type' => $showShopColumn,
+            'multishop_active' => $isMultiShopActive,
             'name' => isset($name) ? $name : null,
             'position_identifier' => $this->position_identifier,
             'identifier' => $this->identifier,
@@ -631,7 +642,11 @@ class HelperListCore extends Helper
                 $params['type'] = 'text';
             }
 
-            $value_key = $prefix.$this->list_id.'Filter_'.(array_key_exists('filter_key', $params) && $key != 'active' ? $params['filter_key'] : $key);
+            $value_key = $prefix.$this->list_id.'Filter_'.(array_key_exists('filter_key', $params) ? $params['filter_key'] : $key);
+            if ($key == 'active' && strpos($key, '!') !== false) {
+                $keys = explode('!', $params['filter_key']);
+                $value_key = $keys[1];
+            }
             $value = Context::getContext()->cookie->{$value_key};
             if (!$value && Tools::getIsset($value_key)) {
                 $value = Tools::getValue($value_key);
@@ -716,6 +731,8 @@ class HelperListCore extends Helper
             'filters_has_value' => (bool)$has_value
         ));
 
+        $isMultiShopActive = Configuration::get('PS_MULTISHOP_FEATURE_ACTIVE');
+
         $this->header_tpl->assign(array_merge(array(
             'ajax' => $ajax,
             'title' => array_key_exists('title', $this->tpl_vars) ? $this->tpl_vars['title'] : $this->title,
@@ -730,6 +747,7 @@ class HelperListCore extends Helper
             'identifier' => $this->identifier,
             'id_cat' => $id_cat,
             'shop_link_type' => $this->shopLinkType,
+            'multishop_active' => $isMultiShopActive,
             'has_actions' => !empty($this->actions),
             'table_id' => isset($this->table_id) ? $this->table_id : null,
             'table_dnd' => isset($table_dnd) ? $table_dnd : null,

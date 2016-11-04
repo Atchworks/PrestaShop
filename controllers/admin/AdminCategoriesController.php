@@ -227,6 +227,12 @@ class AdminCategoriesControllerCore extends AdminController
 
 
         $categories_tree = array_reverse($categories_tree);
+        if (!empty($categories_tree)) {
+            $link = Context::getContext()->link;
+            foreach ($categories_tree as $k => $tree) {
+                $categories_tree[$k]['edit_link'] = $link->getAdminLink('AdminCategories', true).'&id_category='.(int)$tree['id_category'].'&updatecategory';
+            }
+        }
 
         $this->tpl_list_vars['categories_tree'] = $categories_tree;
         $this->tpl_list_vars['categories_tree_current_id'] = $this->_category->id;
@@ -282,9 +288,12 @@ class AdminCategoriesControllerCore extends AdminController
                 );
             }
         }
+
         // be able to edit the Home category
         if (count(Category::getCategoriesWithoutParent()) == 1 && !Tools::isSubmit('id_category')
-            && ($this->display == 'view' || empty($this->display))) {
+            && ($this->display == 'view' || empty($this->display))
+            && !empty($this->_category)
+        ) {
             $this->toolbar_btn['edit'] = array(
                 'href' => self::$currentIndex.'&update'.$this->table.'&id_category='.(int)$this->_category->id.'&token='.$this->token,
                 'desc' => $this->trans('Edit', array(), 'Admin.Actions')
@@ -304,7 +313,8 @@ class AdminCategoriesControllerCore extends AdminController
             );
         }
         parent::initToolbar();
-        if ($this->_category->id == (int)Configuration::get('PS_ROOT_CATEGORY') && isset($this->toolbar_btn['new'])) {
+
+        if (!empty($this->_category) && $this->_category->id == (int)Configuration::get('PS_ROOT_CATEGORY') && isset($this->toolbar_btn['new'])) {
             unset($this->toolbar_btn['new']);
         }
         // after adding a category
@@ -326,8 +336,13 @@ class AdminCategoriesControllerCore extends AdminController
                 );
             }
         }
-        if (!$this->lite_display && isset($this->toolbar_btn['back']['href']) && $this->_category->level_depth > 1
-            && $this->_category->id_parent && $this->_category->id_parent != (int)Configuration::get('PS_ROOT_CATEGORY')) {
+        if (!$this->lite_display
+            && isset($this->toolbar_btn['back']['href'])
+            && !empty($this->_category)
+            && $this->_category->level_depth > 1
+            && $this->_category->id_parent
+            && $this->_category->id_parent != (int)Configuration::get('PS_ROOT_CATEGORY')
+        ) {
             $this->toolbar_btn['back']['href'] .= '&id_category='.(int)$this->_category->id_parent;
         }
     }
@@ -451,13 +466,13 @@ class AdminCategoriesControllerCore extends AdminController
         $images_types = ImageType::getImagesTypes('categories');
         $format = array();
         $thumb = $thumb_url = '';
-        $formated_category= ImageType::getFormattedName('category');
-        $formated_medium = ImageType::getFormattedName('medium');
+        $formatted_category= ImageType::getFormattedName('category');
+        $formatted_small = ImageType::getFormattedName('small');
         foreach ($images_types as $k => $image_type) {
-            if ($formated_category == $image_type['name']) {
+            if ($formatted_category == $image_type['name']) {
                 $format['category'] = $image_type;
-            } elseif ($formated_medium == $image_type['name']) {
-                $format['medium'] = $image_type;
+            } elseif ($formatted_small == $image_type['name']) {
+                $format['small'] = $image_type;
                 $thumb = _PS_CAT_IMG_DIR_.$obj->id.'-'.$image_type['name'].'.'.$this->imageType;
                 if (is_file($thumb)) {
                     $thumb_url = ImageManager::thumbnail($thumb, $this->table.'_'.(int)$obj->id.'-thumb.'.$this->imageType, (int)$image_type['width'], $this->imageType, true, true);
@@ -554,7 +569,7 @@ class AdminCategoriesControllerCore extends AdminController
                     'display_image' => true,
                     'image' => $thumb_url ? $thumb_url : false,
                     'size' => $thumb_size,
-                    'format' => isset($format['medium']) ?: $format['category']
+                    'format' => isset($format['small']) ? $format['small'] : $format['category']
                 ),
                 array(
                     'type' => 'file',
@@ -738,9 +753,9 @@ class AdminCategoriesControllerCore extends AdminController
             }
 
             $images_types = ImageType::getImagesTypes('categories');
-            $formated_medium = ImageType::getFormattedName('medium');
+            $formatted_small = ImageType::getFormattedName('small');
             foreach ($images_types as $k => $image_type) {
-                if ($formated_medium == $image_type['name'] &&
+                if ($formatted_small == $image_type['name'] &&
                     file_exists(_PS_CAT_IMG_DIR_.$category->id.'-'.$image_type['name'].'.'.$this->imageType) &&
                     !unlink(_PS_CAT_IMG_DIR_.$category->id.'-'.$image_type['name'].'.'.$this->imageType)
                 ) {
@@ -908,9 +923,9 @@ class AdminCategoriesControllerCore extends AdminController
                 if (!isset($images_types)) {
                     $images_types = ImageType::getImagesTypes('categories');
                 }
-                $formated_medium = ImageType::getFormattedName('medium');
+                $formatted_small = ImageType::getFormattedName('small');
                 foreach ($images_types as $k => $image_type) {
-                    if ($formated_medium == $image_type['name']) {
+                    if ($formatted_small == $image_type['name']) {
                         if ($error = ImageManager::validateUpload($_FILES[$name], Tools::getMaxUploadSize())) {
                             $this->errors[] = $error;
                         } elseif (!($tmpName = tempnam(_PS_TMP_IMG_DIR_, 'PS')) || !move_uploaded_file($_FILES[$name]['tmp_name'], $tmpName)) {

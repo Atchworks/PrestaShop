@@ -502,7 +502,7 @@ class AdminManufacturersControllerCore extends AdminController
                 'required' => in_array('company', $required_fields),
                 'maxlength' => 16,
                 'col' => 4,
-                'hint' => $this->trans('Company name for this supplier', array(), 'Admin.Catalog.Help')
+                'hint' => $this->trans('Company name for this brand', array(), 'Admin.Catalog.Help')
             );
         }
 
@@ -743,10 +743,6 @@ class AdminManufacturersControllerCore extends AdminController
 
     public function initContent()
     {
-        $this->initTabModuleList();
-        // toolbar (save, cancel, new, ..)
-        $this->initToolbar();
-        $this->initPageHeaderToolbar();
         if ($this->display == 'editaddresses' || $this->display == 'addaddress') {
             $this->content .= $this->renderFormAddress();
         } elseif ($this->display == 'edit' || $this->display == 'add') {
@@ -767,10 +763,6 @@ class AdminManufacturersControllerCore extends AdminController
 
         $this->context->smarty->assign(array(
             'content' => $this->content,
-            'url_post' => self::$currentIndex.'&token='.$this->token,
-            'show_page_header_toolbar' => $this->show_page_header_toolbar,
-            'page_header_toolbar_title' => $this->page_header_toolbar_title,
-            'page_header_toolbar_btn' => $this->page_header_toolbar_btn
         ));
     }
 

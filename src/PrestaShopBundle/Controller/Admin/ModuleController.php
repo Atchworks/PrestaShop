@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Validator\Constraints as Assert;
 use PrestaShop\PrestaShop\Adapter\Module\Module;
+use PrestaShop\PrestaShop\Core\Addon\AddonListFilterOrigin;
 
 class ModuleController extends FrameworkBundleAdminController
 {
@@ -27,7 +28,7 @@ class ModuleController extends FrameworkBundleAdminController
 
         return $this->render('PrestaShopBundle:Admin/Module:catalog.html.twig', array(
                 'layoutHeaderToolbarBtn' => $this->getToolbarButtons(),
-                'layoutTitle' => $translator->trans('Modules & Services', array(), 'Admin.Navigation.Menu'),
+                'layoutTitle' => $translator->trans('Module selection', array(), 'Admin.Navigation.Menu'),
                 'requireAddonsSearch' => true,
                 'requireBulkActions' => false,
                 'showContentHeader' => true,
@@ -128,14 +129,19 @@ class ModuleController extends FrameworkBundleAdminController
         $modulesProvider = $this->get('prestashop.core.admin.data_provider.module_interface');
         $shopService = $this->get('prestashop.adapter.shop.context');
         $moduleRepository = $this->get('prestashop.core.admin.module.repository');
-        $themeRepository = $this->get('prestashop.core.admin.theme.repository');
+        $themeRepository = $this->get('prestashop.core.addon.theme.repository');
 
         // Retrieve current shop
         $shopID = $shopService->getContextShopID();
         $shops = $shopService->getShops();
-        $shop = $shops[$shopID];
-        $currentTheme = $themeRepository->getInstanceByName($shop['theme_name']);
-        $modulesTheme = $currentTheme->getModulesToEnable();
+
+        if (!empty($shopID) && is_array($shops) && array_key_exists($shopID, $shops)) {
+            $shop = $shops[$shopID];
+            $currentTheme = $themeRepository->getInstanceByName($shop['theme_name']);
+            $modulesTheme = $currentTheme->getModulesToEnable();
+        } else {
+            $modulesTheme = array();
+        }
 
         $filters = new AddonListFilter();
         $filters->setType(AddonListFilterType::MODULE | AddonListFilterType::SERVICE)
@@ -150,7 +156,17 @@ class ModuleController extends FrameworkBundleAdminController
         foreach ($installedProducts as $installedProduct) {
             if (in_array($installedProduct->attributes->get('name'), $modulesTheme)) {
                 $row = 'theme_bundle';
-            } elseif ($installedProduct->attributes->has('origin') && $installedProduct->attributes->get('origin') === 'native' && $installedProduct->attributes->get('author') === 'PrestaShop') {
+            } elseif (
+                $installedProduct->attributes->has('origin_filter_value')
+                && in_array(
+                    $installedProduct->attributes->get('origin_filter_value'),
+                    array(
+                        AddonListFilterOrigin::ADDONS_NATIVE,
+                        AddonListFilterOrigin::ADDONS_NATIVE_ALL,
+                    )
+                )
+                && 'PrestaShop' === $installedProduct->attributes->get('author')
+            ) {
                 $row = 'native_modules';
             } else {
                 $row = 'modules';
@@ -167,7 +183,7 @@ class ModuleController extends FrameworkBundleAdminController
 
         return $this->render('PrestaShopBundle:Admin/Module:manage.html.twig', array(
                 'layoutHeaderToolbarBtn' => $this->getToolbarButtons(),
-                'layoutTitle' => $translator->trans('Manage my modules', array(), 'Admin.Modules.Feature'),
+                'layoutTitle' => $translator->trans('Manage installed modules', array(), 'Admin.Modules.Feature'),
                 'modules' => $modules,
                 'topMenuData' => $this->getTopMenuData($categoriesMenu),
                 'requireAddonsSearch' => false,
@@ -191,6 +207,10 @@ class ModuleController extends FrameworkBundleAdminController
 
         $response = array();
         if (method_exists($moduleManager, $action)) {
+            if ($this->isDemoModeEnabled()) {
+                return $this->getDisabledFunctionalityResponse($request);
+            }
+
             // ToDo : Check if allowed to call this action
             try {
                 if ($action == 'uninstall') {
@@ -230,7 +250,7 @@ class ModuleController extends FrameworkBundleAdminController
             } catch (Exception $e) {
                 $response[$module]['status'] = false;
                 $response[$module]['msg'] = $translator->trans(
-                    'Exception thrown by addon %module% on %action%. %error_details%',
+                    'Exception thrown by module %module% on %action%. %error_details%',
                     array(
                             '%action%' => str_replace('_', ' ', $action),
                             '%module%' => $module,
@@ -276,6 +296,23 @@ class ModuleController extends FrameworkBundleAdminController
         }
     }
 
+    /**
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     * @return JsonResponse
+     */
+    protected function getDisabledFunctionalityResponse($request)
+    {
+        $module = $request->get('module_name');
+        $content = array(
+            $module => array(
+                'status' => false,
+                'msg' => $this->getDemoModeErrorMessage(),
+            ),
+        );
+
+        return new JsonResponse($content);
+    }
+
     public function notificationAction()
     {
         $translator = $this->get('translator');
@@ -294,17 +331,22 @@ class ModuleController extends FrameworkBundleAdminController
         }
 
         foreach ($installedProducts as $installedProduct) {
-            $warnings = $installedProduct->attributes->get('warning');
+            $warnings = array();
+            $moduleProvider = $this->get('prestashop.adapter.data_provider.module');
+            $moduleName = $installedProduct->attributes->get('name');
+
+            if ($moduleProvider->isModuleMainClassValid($moduleName)) {
+                require_once _PS_MODULE_DIR_.$moduleName.'/'.$moduleName.'.php';
+
+                $module = \PrestaShop\PrestaShop\Adapter\ServiceLocator::get($moduleName);
+                $warnings = $module->warning;
+            }
             if (!empty($warnings)) {
-                $row = 'to_configure';
-            } elseif ($installedProduct->database->get('installed') == 1 && $installedProduct->database->get('version') !== 0 && version_compare($installedProduct->database->get('version'), $installedProduct->attributes->get('version'), '<')) {
-                $row = 'to_update';
-            } else {
-                $row = false;
+                $modules->to_configure[] = (object) $installedProduct;
             }
 
-            if ($row) {
-                $modules->{$row}[] = (object) $installedProduct;
+            if ($installedProduct->canBeUpgraded()) {
+                $modules->to_update[] = (object) $installedProduct;
             }
         }
 
@@ -429,6 +471,13 @@ class ModuleController extends FrameworkBundleAdminController
         $moduleManager = $this->get('prestashop.module.manager');
         $moduleZipManager = $this->get('prestashop.module.zip.manager');
 
+        if ($this->isDemoModeEnabled()) {
+            return new JsonResponse(array(
+                'status' => false,
+                'msg' => $this->getDemoModeErrorMessage(),
+            ));
+        }
+
         try {
             $file_uploaded = $request->files->get('file_uploaded');
             $constraints = array(
@@ -469,14 +518,17 @@ class ModuleController extends FrameworkBundleAdminController
                     'Admin.Modules.Notification');
             } elseif ($installation_response['status'] === true) {
                 $installation_response['msg'] = $translator->trans(
-                    'Installation of module %module% succeeded',
+                    'Installation of module %module% was successful.',
                     array('%module%' => $module_name),
                     'Admin.Modules.Notification');
                 $installation_response['is_configurable'] = (bool) $this->get('prestashop.core.admin.module.repository')->getModule($module_name)->attributes->get('is_configurable');
             } else {
+                $error = $moduleManager->getError($module_name);
                 $installation_response['msg'] = $translator->trans(
-                    'Installation of module %module% failed.',
-                    array('%module%' => $module_name),
+                    'Installation of module %module% failed. %error%',
+                    array(
+                        '%module%' => $module_name,
+                        '%error%' => $error, ),
                     'Admin.Modules.Notification');
             }
 
@@ -616,15 +668,20 @@ class ModuleController extends FrameworkBundleAdminController
 
     public function getModuleCartAction($moduleId)
     {
-        $module = (array) $this->get('prestashop.adapter.data_provider.addon')->request('module', array('id_module' => $moduleId));
+        $adminModuleRepository = $this->get('prestashop.core.admin.module.repository');
+        $module = $adminModuleRepository->getModuleById($moduleId);
 
-        $moduleAdapter = new Module($module);
-        $addonsProvider = $this->get('prestashop.core.admin.data_provider.module_interface');
+        $addOnsAdminDataProvider = $this->get('prestashop.core.admin.data_provider.module_interface');
+        $addOnsAdminDataProvider->generateAddonsUrls(array($module));
+
         $modulePresenter = $this->get('prestashop.adapter.presenter.module');
+        $moduleToPresent = $modulePresenter->present($module);
 
-        $addonsProvider->generateAddonsUrls(array($moduleAdapter));
-        $moduleToPresent = $modulePresenter->present($moduleAdapter);
-
-        return $this->render('@PrestaShop/Admin/Module/Includes/modal_read_more_content.html.twig', array('module' => $moduleToPresent));
+        return $this->render(
+            '@PrestaShop/Admin/Module/Includes/modal_read_more_content.html.twig',
+            array(
+                'module' => $moduleToPresent,
+            )
+        );
     }
 }

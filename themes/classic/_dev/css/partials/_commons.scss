@@ -11,7 +11,7 @@ html {
   height: 100%;
 }
 body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: 'Noto Sans', sans-serif;
   font-size: $base-font-size;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -76,6 +76,19 @@ p {
   padding: rem(8px) rem(20px);
   .material-icons {
     margin-right: $small-space;
+  }
+}
+.btn-tertiary {
+  @extend .btn-secondary;
+  text-transform: lowercase;
+  color: $gray;
+  box-shadow: rem(1px) rem(1px) rem(1px) 0 rgba(0, 0, 0, 0.1);
+  padding: rem(4px);
+  margin: rem(4px) 0;
+  font-weight: 400;
+  font-size: $font-size-sm;
+  .material-icons {
+    font-size: $base-font-size;
   }
 }
 .card {

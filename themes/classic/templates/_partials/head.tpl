@@ -5,6 +5,9 @@
   <title>{block name='head_seo_title'}{$page.meta.title}{/block}</title>
   <meta name="description" content="{block name='head_seo_description'}{$page.meta.description}{/block}">
   <meta name="keywords" content="{block name='head_seo_keywords'}{$page.meta.keywords}{/block}">
+  {if $page.meta.robots !== 'index'}
+    <meta name="robots" content="{$page.meta.robots}">
+  {/if}
   {if $page.canonical}
     <link rel="canonical" href="{$page.canonical}">
   {/if}
@@ -15,17 +18,13 @@
 <link rel="icon" type="image/vnd.microsoft.icon" href="{$shop.favicon}?{$shop.favicon_update_time}">
 <link rel="shortcut icon" type="image/x-icon" href="{$shop.favicon}?{$shop.favicon_update_time}">
 
-{if isset($css_files)}
-  {foreach from=$css_files key=css_uri item=media}
-    <link rel="stylesheet" href="{$css_uri}" type="text/css" media="{$media}">
-  {/foreach}
-{/if}
-{if isset($js_defer) && !$js_defer && isset($js_files) && isset($js_def)}
-  {$js_def nofilter}
-  {foreach from=$js_files item=js_uri}
-    <script type="text/javascript" src="{$js_uri}"></script>
-  {/foreach}
-{/if}
+{block name='stylesheets'}
+  {include file="_partials/stylesheets.tpl" stylesheets=$stylesheets}
+{/block}
+
+{block name='javascript_head'}
+  {include file="_partials/javascript.tpl" javascript=$javascript.head vars=$js_custom_vars}
+{/block}
 
 {block name='hook_header'}
   {$HOOK_HEADER nofilter}

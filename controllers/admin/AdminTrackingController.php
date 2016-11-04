@@ -55,9 +55,6 @@ class AdminTrackingControllerCore extends AdminController
 
     public function initContent()
     {
-        $this->initTabModuleList();
-        $this->initPageHeaderToolbar();
-
         if ($id_category = Tools::getValue('id_category') && Tools::getIsset('viewcategory')) {
             Tools::redirectAdmin($this->context->link->getAdminLink('AdminProducts').'&id_category='.(int)$id_category.'&viewcategory');
         }
@@ -78,10 +75,6 @@ class AdminTrackingControllerCore extends AdminController
         }
         $this->context->smarty->assign(array(
             'content' => $this->content,
-            'url_post' => self::$currentIndex.'&token='.$this->token,
-            'show_page_header_toolbar' => $this->show_page_header_toolbar,
-            'page_header_toolbar_title' => $this->page_header_toolbar_title,
-            'page_header_toolbar_btn' => $this->page_header_toolbar_btn
         ));
     }
 
@@ -146,7 +139,7 @@ class AdminTrackingControllerCore extends AdminController
             'id_product' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'class' => 'fixed-width-xs', 'align' => 'center'),
             'reference' => array('title' => $this->trans('Reference', array(), 'Admin.Global')),
             'name' => array('title' => $this->trans('Name', array(), 'Admin.Global'), 'filter_key' => 'b!name'),
-            'active' => array('title' => $this->trans('Status', array(), 'Admin.Global'), 'type' => 'bool', 'active' => 'status', 'align' => 'center', 'class' => 'fixed-width-xs')
+            'active' => array('title' => $this->trans('Status', array(), 'Admin.Global'), 'type' => 'bool', 'active' => 'status', 'align' => 'center', 'class' => 'fixed-width-xs', 'filter_key' => 'a!active')
         );
 
         $this->clearFilters();
@@ -190,7 +183,7 @@ class AdminTrackingControllerCore extends AdminController
             'id_product' => array('title' => $this->trans('ID', array(), 'Admin.Global'), 'class' => 'fixed-width-xs', 'align' => 'center'),
             'reference' => array('title' => $this->trans('Reference', array(), 'Admin.Global')),
             'name' => array('title' => $this->trans('Name', array(), 'Admin.Global')),
-            'active' => array('title' => $this->trans('Status', array(), 'Admin.Global'), 'type' => 'bool', 'active' => 'status', 'align' => 'center', 'class' => 'fixed-width-xs')
+            'active' => array('title' => $this->trans('Status', array(), 'Admin.Global'), 'type' => 'bool', 'active' => 'status', 'align' => 'center', 'class' => 'fixed-width-xs', 'filter_key' => 'a!active')
         );
         $this->clearFilters();
 

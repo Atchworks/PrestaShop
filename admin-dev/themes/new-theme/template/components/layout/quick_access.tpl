@@ -5,7 +5,11 @@
   </span>
   <div class="ps-dropdown-menu dropdown-menu" aria-labelledby="quick-access">
     {foreach $quick_access as $quick}
-      <a href="{$baseAdminUrl}{$quick.link|escape:'html':'UTF-8'}" class="dropdown-item" data-item="{$quick.name}">{$quick.name}</a></li>
+      <a class="dropdown-item{if $link->matchQuickLink({$quick.link})}{assign "matchQuickLink" $quick.id_quick_access} active{/if}"
+         href="{$quick.link|escape:'html':'UTF-8'}"
+        {if $quick.new_window} target="_blank"{/if}
+         data-item="{$quick.name}"
+      >{$quick.name}</a>
     {/foreach}
     <hr>
     {if isset($matchQuickLink)}

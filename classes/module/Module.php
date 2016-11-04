@@ -666,9 +666,15 @@ abstract class ModuleCore
         // Delete permissions module access
         $roles = Db::getInstance()->executeS('SELECT `id_authorization_role` FROM `'._DB_PREFIX_.'authorization_role` WHERE `slug` LIKE "ROLE_MOD_MODULE_'.strtoupper($this->name).'_%"');
 
-        foreach ($roles as $role) {
-            Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'module_access` WHERE `id_authorization_role` = '.$role['id_authorization_role']);
-            Db::getInstance()->execute('DELETE FROM `'._DB_PREFIX_.'authorization_role` WHERE `id_authorization_role` = '.$role['id_authorization_role']);
+        if (!empty($roles)) {
+            foreach ($roles as $role) {
+                Db::getInstance()->execute(
+                    'DELETE FROM `'._DB_PREFIX_.'module_access` WHERE `id_authorization_role` = '.$role['id_authorization_role']
+                );
+                Db::getInstance()->execute(
+                    'DELETE FROM `'._DB_PREFIX_.'authorization_role` WHERE `id_authorization_role` = '.$role['id_authorization_role']
+                );
+            }
         }
 
         // Remove restrictions for client groups
@@ -780,6 +786,29 @@ abstract class ModuleCore
         );
 
         return true;
+    }
+
+    /**
+     * This function disable all module $name. If an $name is an array,
+     * this will disable all of them
+     *
+     * @param array|string $name
+     * @return true if succeed
+     * @since 1.7
+     */
+    public static function disableAllByName($name)
+    {
+        // If $name is not an array, we set it as an array
+        if (!is_array($name)) {
+            $name = array($name);
+        }
+        $res = true;
+        // Disable each module
+        foreach ($name as $n) {
+            $sql = 'DELETE `'._DB_PREFIX_.'module_shop` FROM `'._DB_PREFIX_.'module_shop` JOIN `'._DB_PREFIX_.'module` USING (id_module) WHERE `name` = "'.pSQL($n).'"';
+            $res &= Db::getInstance()->execute($sql);
+        }
+        return $res;
     }
 
     /**
@@ -1537,7 +1566,7 @@ abstract class ModuleCore
         }
 
         $arr_native_modules = array();
-        if (is_array($native_modules)) {
+        if (is_object($native_modules)) {
             foreach ($native_modules as $native_modules_type) {
                 if (in_array($native_modules_type['type'], array('native', 'partner'))) {
                     $arr_native_modules[] = '""';
@@ -2140,7 +2169,13 @@ abstract class ModuleCore
         } elseif (Tools::file_exists_cache(_PS_THEME_DIR_.'modules/'.$module_name.'/views/templates/hook/'.$template)) {
             return _PS_THEME_DIR_.'modules/'.$module_name.'/views/templates/hook/'.$template;
         } elseif (Tools::file_exists_cache(_PS_THEME_DIR_.'modules/'.$module_name.'/views/templates/front/'.$template)) {
-            return _PS_THEME_DIR_.'modules/'.$module_name.'/views/templates/front/'.$template;
+            return _PS_THEME_DIR_ . 'modules/' . $module_name . '/views/templates/front/' . $template;
+        } elseif (Tools::file_exists_cache(_PS_PARENT_THEME_DIR_.'modules/'.$module_name.'/'.$template)) {
+            return _PS_PARENT_THEME_DIR_.'modules/'.$module_name.'/'.$template;
+        } elseif (Tools::file_exists_cache(_PS_PARENT_THEME_DIR_.'modules/'.$module_name.'/views/templates/hook/'.$template)) {
+            return _PS_PARENT_THEME_DIR_.'modules/'.$module_name.'/views/templates/hook/'.$template;
+        } elseif (Tools::file_exists_cache(_PS_PARENT_THEME_DIR_.'modules/'.$module_name.'/views/templates/front/'.$template)) {
+            return _PS_PARENT_THEME_DIR_.'modules/'.$module_name.'/views/templates/front/'.$template;
         } elseif (Tools::file_exists_cache(_PS_MODULE_DIR_.$module_name.'/views/templates/hook/'.$template)) {
             return false;
         } elseif (Tools::file_exists_cache(_PS_MODULE_DIR_.$module_name.'/views/templates/front/'.$template)) {
@@ -2208,6 +2243,35 @@ abstract class ModuleCore
     }
 
     /**
+     * Use this method to return the result of a smarty template when assign data only locally with $this->smarty->assign()
+     *
+     * @param string $templatePath relative path the template file, from the module root dir.
+     * @param null $cache_id
+     * @param null $compile_id
+     *
+     * @return mixed
+     */
+    public function fetch($templatePath, $cache_id = null, $compile_id = null)
+    {
+        if ($cache_id !== null) {
+            Tools::enableCache();
+        }
+
+        $template = $this->context->smarty->createTemplate(
+            $templatePath,
+            $cache_id,
+            $compile_id,
+            $this->smarty
+        );
+
+        if ($cache_id !== null) {
+            Tools::restoreCacheSettings();
+        }
+
+        return $template->fetch();
+    }
+
+    /**
      * @param string $template
      * @param string|null $cache_id
      * @param string|null $compile_id
@@ -2216,13 +2280,18 @@ abstract class ModuleCore
     protected function getCurrentSubTemplate($template, $cache_id = null, $compile_id = null)
     {
         if (!isset($this->current_subtemplate[$template.'_'.$cache_id.'_'.$compile_id])) {
+            if (false === strpos($template, 'module:')) {
+                $template = $this->getTemplatePath($template);
+            }
+
             $this->current_subtemplate[$template.'_'.$cache_id.'_'.$compile_id] = $this->context->smarty->createTemplate(
-                $this->getTemplatePath($template),
+                $template,
                 $cache_id,
                 $compile_id,
                 $this->smarty
             );
         }
+
         return $this->current_subtemplate[$template.'_'.$cache_id.'_'.$compile_id];
     }
 
@@ -2258,16 +2327,13 @@ abstract class ModuleCore
         }
     }
 
-    protected function _getApplicableTemplateDir($template)
-    {
-        return $this->_isTemplateOverloaded($template) ? _PS_THEME_DIR_ : _PS_MODULE_DIR_.$this->name.'/';
-    }
-
     public function isCached($template, $cache_id = null, $compile_id = null)
     {
         Tools::enableCache();
-        $new_tpl = $this->getTemplatePath($template);
-        $is_cached = $this->getCurrentSubTemplate($template, $cache_id, $compile_id)->isCached($new_tpl, $cache_id, $compile_id);
+        if (false === strpos($template, 'module:')) {
+            $template = $this->getTemplatePath($template);
+        }
+        $is_cached = $this->getCurrentSubTemplate($template, $cache_id, $compile_id)->isCached($template, $cache_id, $compile_id);
         Tools::restoreCacheSettings();
         return $is_cached;
     }
@@ -2404,7 +2470,7 @@ abstract class ModuleCore
             FROM `'._DB_PREFIX_.'authorization_role` a
             LEFT JOIN `'._DB_PREFIX_.'module_access` j ON j.id_authorization_role = a.id_authorization_role
             WHERE `slug` LIKE "ROLE_MOD_MODULE_%"
-            AND j.id_profile = "'.$idProfile.'"
+            AND j.id_profile = "'.(int) $idProfile.'"
             ORDER BY a.slug
         ');
 
@@ -2496,7 +2562,7 @@ abstract class ModuleCore
     }
 
     /**
-     * Get Unauthorized modules for a client group
+     * Get authorized modules for a client group
      *
      * @param int $group_id
      * @return array|null

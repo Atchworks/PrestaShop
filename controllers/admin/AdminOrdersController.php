@@ -465,47 +465,89 @@ class AdminOrdersControllerCore extends AdminController
             ShopUrl::cacheMainDomainForShop((int)$order->id_shop);
         }
 
-        /* Update shipping number */
+        /* Update shipping number and carrier */
         if (Tools::isSubmit('submitShippingNumber') && isset($order)) {
             if ($this->access('edit')) {
+                $tracking_number = Tools::getValue('shipping_tracking_number');
+                $id_carrier = Tools::getValue('shipping_carrier');
+                $old_tracking_number = $order->shipping_number;
+
                 $order_carrier = new OrderCarrier(Tools::getValue('id_order_carrier'));
                 if (!Validate::isLoadedObject($order_carrier)) {
                     $this->errors[] = $this->trans('The order carrier ID is invalid.', array(), 'Admin.OrdersCustomers.Notification');
-                } elseif (!Validate::isTrackingNumber(Tools::getValue('tracking_number'))) {
+                } elseif (!empty($tracking_number) && !Validate::isTrackingNumber($tracking_number)) {
                     $this->errors[] = $this->trans('The tracking number is incorrect.', array(), 'Admin.OrdersCustomers.Notification');
                 } else {
+                    //update carrier - ONLY if changed - then refresh shipping cost
+                    $old_id_carrier = $order_carrier->id_carrier;
+                    if (!empty($id_carrier) && $old_id_carrier != $id_carrier) {
+                        $order->id_carrier = (int) $id_carrier;
+                        $order_carrier->id_carrier = (int) $id_carrier;
+                        $order_carrier->update();
+                        $order->refreshShippingCost();
+                    }
+
+                    //load fresh order carrier because updated just before
+                    $order_carrier = new OrderCarrier((int) Tools::getValue('id_order_carrier'));
+
                     // update shipping number
                     // Keep these two following lines for backward compatibility, remove on 1.6 version
-                    $order->shipping_number = Tools::getValue('tracking_number');
+                    $order->shipping_number = $tracking_number;
                     $order->update();
 
                     // Update order_carrier
-                    $order_carrier->tracking_number = pSQL(Tools::getValue('tracking_number'));
+                    $order_carrier->tracking_number = pSQL($tracking_number);
                     if ($order_carrier->update()) {
-                        // Send mail to customer
-                        $customer = new Customer((int)$order->id_customer);
-                        $carrier = new Carrier((int)$order->id_carrier, $order->id_lang);
-                        if (!Validate::isLoadedObject($customer)) {
-                            throw new PrestaShopException('Can\'t load Customer object');
-                        }
-                        if (!Validate::isLoadedObject($carrier)) {
-                            throw new PrestaShopException('Can\'t load Carrier object');
-                        }
-                        $templateVars = array(
-                            '{followup}' => str_replace('@', $order->shipping_number, $carrier->url),
-                            '{firstname}' => $customer->firstname,
-                            '{lastname}' => $customer->lastname,
-                            '{id_order}' => $order->id,
-                            '{shipping_number}' => $order->shipping_number,
-                            '{order_name}' => $order->getUniqReference()
-                        );
-                        if (@Mail::Send((int)$order->id_lang, 'in_transit', Mail::l('Package in transit', (int)$order->id_lang), $templateVars,
-                            $customer->email, $customer->firstname.' '.$customer->lastname, null, null, null, null,
-                            _PS_MAIL_DIR_, true, (int)$order->id_shop)) {
-                            Hook::exec('actionAdminOrdersTrackingNumberUpdate', array('order' => $order, 'customer' => $customer, 'carrier' => $carrier), null, false, true, false, $order->id_shop);
-                            Tools::redirectAdmin(self::$currentIndex.'&id_order='.$order->id.'&vieworder&conf=4&token='.$this->token);
-                        } else {
-                            $this->errors[] = $this->trans('An error occurred while sending an email to the customer.', array(), 'Admin.OrdersCustomers.Notification');
+                        //send mail only if tracking number is different AND not empty
+                        if (!empty($tracking_number) && $old_tracking_number != $tracking_number) {
+                            $customer = new Customer((int)$order->id_customer);
+                            $carrier = new Carrier((int)$order->id_carrier, $order->id_lang);
+                            if (!Validate::isLoadedObject($customer)) {
+                                throw new PrestaShopException('Can\'t load Customer object');
+                            }
+                            if (!Validate::isLoadedObject($carrier)) {
+                                throw new PrestaShopException('Can\'t load Carrier object');
+                            }
+                            $orderLanguage = new Language((int) $order->id_lang);
+                            $templateVars = array(
+                                '{followup}' => str_replace('@', $order->shipping_number, $carrier->url),
+                                '{firstname}' => $customer->firstname,
+                                '{lastname}' => $customer->lastname,
+                                '{id_order}' => $order->id,
+                                '{shipping_number}' => $order->shipping_number,
+                                '{order_name}' => $order->getUniqReference()
+                            );
+
+                            if (@Mail::Send(
+                                (int)$order->id_lang,
+                                'in_transit',
+                                $this->trans(
+                                    'Package in transit',
+                                    array(),
+                                    'Emails.Subject',
+                                    $orderLanguage->locale
+                                ),
+                                $templateVars,
+                                $customer->email,
+                                $customer->firstname . ' ' . $customer->lastname,
+                                null,
+                                null,
+                                null,
+                                null,
+                                _PS_MAIL_DIR_,
+                                true,
+                                (int)$order->id_shop
+                            )) {
+                                Hook::exec('actionAdminOrdersTrackingNumberUpdate', array(
+                                    'order' => $order,
+                                    'customer' => $customer,
+                                    'carrier' => $carrier
+                                ), null, false, true, false, $order->id_shop);
+
+                                Tools::redirectAdmin(self::$currentIndex.'&id_order='.$order->id.'&vieworder&conf=4&token='.$this->token);
+                            } else {
+                                $this->errors[] = Tools::displayError('An error occurred while sending an email to the customer.', array(), 'Admin.Notifications.Error');
+                            }
                         }
                     } else {
                         $this->errors[] = $this->trans('The order carrier cannot be updated.', array(), 'Admin.OrdersCustomers.Notification');
@@ -514,10 +556,8 @@ class AdminOrdersControllerCore extends AdminController
             } else {
                 $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
             }
-        }
-
-        /* Change order status, add a new entry in order history and send an e-mail to the customer if needed */
-        elseif (Tools::isSubmit('submitState') && isset($order)) {
+        } elseif (Tools::isSubmit('submitState') && isset($order)) {
+            /* Change order status, add a new entry in order history and send an e-mail to the customer if needed */
             if ($this->access('edit')) {
                 $order_state = new OrderState(Tools::getValue('id_order_state'));
 
@@ -638,6 +678,7 @@ class AdminOrdersControllerCore extends AdminController
                                 $message = Tools::nl2br($customer_message->message);
                             }
 
+                            $orderLanguage = new Language((int) $order->id_lang);
                             $varsTpl = array(
                                 '{lastname}' => $customer->lastname,
                                 '{firstname}' => $customer->firstname,
@@ -645,9 +686,27 @@ class AdminOrdersControllerCore extends AdminController
                                 '{order_name}' => $order->getUniqReference(),
                                 '{message}' => $message
                             );
-                            if (@Mail::Send((int)$order->id_lang, 'order_merchant_comment',
-                                Mail::l('New message regarding your order', (int)$order->id_lang), $varsTpl, $customer->email,
-                                $customer->firstname.' '.$customer->lastname, null, null, null, null, _PS_MAIL_DIR_, true, (int)$order->id_shop)) {
+
+                            if (
+                                @Mail::Send(
+                                    (int)$order->id_lang,
+                                    'order_merchant_comment',
+                                    $this->trans(
+                                        'New message regarding your order',
+                                        array(),
+                                        'Emails.Subject',
+                                        $orderLanguage->locale
+                                    ),
+                                    $varsTpl, $customer->email,
+                                    $customer->firstname.' '.$customer->lastname,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    _PS_MAIL_DIR_,
+                                    true,
+                                    (int)$order->id_shop)
+                            ) {
                                 Tools::redirectAdmin(self::$currentIndex.'&id_order='.$order->id.'&vieworder&conf=11'.'&token='.$this->token);
                             }
                         }
@@ -744,10 +803,16 @@ class AdminOrdersControllerCore extends AdminController
                             $params['{firstname}'] = $customer->firstname;
                             $params['{id_order}'] = $order->id;
                             $params['{order_name}'] = $order->getUniqReference();
+                            $orderLanguage = new Language((int) $order->id_lang);
                             @Mail::Send(
                                 (int)$order->id_lang,
                                 'credit_slip',
-                                Mail::l('New credit slip regarding your order', (int)$order->id_lang),
+                                $this->trans(
+                                    'New credit slip regarding your order',
+                                    array(),
+                                    'Emails.Subject',
+                                    $orderLanguage->locale
+                                ),
                                 $params,
                                 $customer->email,
                                 $customer->firstname.' '.$customer->lastname,
@@ -816,9 +881,27 @@ class AdminOrdersControllerCore extends AdminController
                                     $params['{order_name}'] = $order->getUniqReference();
                                     $params['{voucher_amount}'] = Tools::displayPrice($cart_rule->reduction_amount, $currency, false);
                                     $params['{voucher_num}'] = $cart_rule->code;
-                                    @Mail::Send((int)$order->id_lang, 'voucher', sprintf(Mail::l('New voucher for your order #%s', (int)$order->id_lang), $order->reference),
-                                        $params, $customer->email, $customer->firstname.' '.$customer->lastname, null, null, null,
-                                        null, _PS_MAIL_DIR_, true, (int)$order->id_shop);
+                                    $orderLanguage = new Language((int) $order->id_lang);
+                                    @Mail::Send(
+                                        (int)$order->id_lang,
+                                        'voucher',
+                                        $this->trans(
+                                            'New voucher for your order #%s',
+                                            array($order->reference),
+                                            'Emails.Subject',
+                                            $orderLanguage->locale
+                                        ),
+                                        $params,
+                                        $customer->email,
+                                        $customer->firstname.' '.$customer->lastname,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        _PS_MAIL_DIR_,
+                                        true,
+                                        (int)$order->id_shop
+                                    );
                                 }
                             }
                         }
@@ -996,10 +1079,16 @@ class AdminOrdersControllerCore extends AdminController
                                 $this->errors[] = $this->trans('A credit slip cannot be generated.', array(), 'Admin.OrdersCustomers.Notification');
                             } else {
                                 Hook::exec('actionOrderSlipAdd', array('order' => $order, 'productList' => $full_product_list, 'qtyList' => $full_quantity_list), null, false, true, false, $order->id_shop);
+                                $orderLanguage = new Language((int) $order->id_lang);
                                 @Mail::Send(
                                     (int)$order->id_lang,
                                     'credit_slip',
-                                    Mail::l('New credit slip regarding your order', (int)$order->id_lang),
+                                    $this->trans(
+                                        'New credit slip regarding your order',
+                                        array(),
+                                        'Emails.Subject',
+                                        $orderLanguage->locale
+                                    ),
                                     $params,
                                     $customer->email,
                                     $customer->firstname.' '.$customer->lastname,
@@ -1071,9 +1160,27 @@ class AdminOrdersControllerCore extends AdminController
                                     $currency = $this->context->currency;
                                     $params['{voucher_amount}'] = Tools::displayPrice($cartrule->reduction_amount, $currency, false);
                                     $params['{voucher_num}'] = $cartrule->code;
-                                    @Mail::Send((int)$order->id_lang, 'voucher', sprintf(Mail::l('New voucher for your order #%s', (int)$order->id_lang), $order->reference),
-                                    $params, $customer->email, $customer->firstname.' '.$customer->lastname, null, null, null,
-                                    null, _PS_MAIL_DIR_, true, (int)$order->id_shop);
+                                    $orderLanguage = new Language((int) $order->id_lang);
+                                    @Mail::Send(
+                                        (int)$order->id_lang,
+                                        'voucher',
+                                        $this->trans(
+                                            'New voucher for your order #%s',
+                                            array($order->reference),
+                                            'Emails.Subject',
+                                            $orderLanguage->locale
+                                        ),
+                                        $params,
+                                        $customer->email,
+                                        $customer->firstname.' '.$customer->lastname,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        _PS_MAIL_DIR_,
+                                        true,
+                                        (int)$order->id_shop
+                                    );
                                 }
                             }
                         }
@@ -1190,6 +1297,8 @@ class AdminOrdersControllerCore extends AdminController
                         $order->id_address_invoice = $address->id;
                     }
                     $order->update();
+                    $order->refreshShippingCost();
+
                     Tools::redirectAdmin(self::$currentIndex.'&id_order='.$order->id.'&vieworder&conf=4&token='.$this->token);
                 } else {
                     $this->errors[] = $this->trans('This address can\'t be loaded', array(), 'Admin.OrdersCustomers.Notification');
@@ -1811,6 +1920,8 @@ class AdminOrdersControllerCore extends AdminController
             'payment_methods' => $payment_methods,
             'invoice_management_active' => Configuration::get('PS_INVOICE', null, null, $order->id_shop),
             'display_warehouse' => (int)Configuration::get('PS_ADVANCED_STOCK_MANAGEMENT'),
+            'carrier_list' => $this->getCarrierList($order),
+            'recalculate_shipping_cost' => (int)Configuration::get('PS_ORDER_RECALCULATE_SHIPPING'),
             'HOOK_CONTENT_ORDER' => Hook::exec('displayAdminOrderContentOrder', array(
                 'order' => $order,
                 'products' => $products,
@@ -1927,8 +2038,28 @@ class AdminOrdersControllerCore extends AdminController
                         '{firstname}' => $customer->firstname,
                         '{lastname}' => $customer->lastname
                     );
-                    if (Mail::Send((int)$cart->id_lang, 'backoffice_order', Mail::l('Process the payment of your order', (int)$cart->id_lang), $mailVars, $customer->email,
-                            $customer->firstname.' '.$customer->lastname, null, null, null, null, _PS_MAIL_DIR_, true, $cart->id_shop)) {
+                    $cartLanguage = new Language((int) $cart->id_lang);
+                    if (
+                        Mail::Send(
+                            (int)$cart->id_lang,
+                            'backoffice_order',
+                            $this->trans(
+                                'Process the payment of your order',
+                                array(),
+                                'Emails.Subject',
+                                $cartLanguage->locale
+                            ),
+                            $mailVars,
+                            $customer->email,
+                            $customer->firstname.' '.$customer->lastname,
+                            null,
+                            null,
+                            null,
+                            null,
+                            _PS_MAIL_DIR_,
+                            true,
+                            $cart->id_shop)
+                    ) {
                         die(json_encode(array('errors' => false, 'result' => $this->trans('The email was sent to your customer.', array(), 'Admin.OrdersCustomers.Notification'))));
                     }
                 }
@@ -2210,6 +2341,8 @@ class AdminOrdersControllerCore extends AdminController
             $invoice_array[] = $invoice;
         }
 
+        $order = $order->refreshShippingCost();
+
         // Assign to smarty informations in order to show the new product line
         $this->context->smarty->assign(array(
             'product' => $product,
@@ -2467,6 +2600,8 @@ class AdminOrdersControllerCore extends AdminController
             $invoice_array[] = $invoice;
         }
 
+        $order = $order->refreshShippingCost();
+
         // Assign to smarty informations in order to show the new product line
         $this->context->smarty->assign(array(
             'product' => $product,
@@ -2566,6 +2701,8 @@ class AdminOrdersControllerCore extends AdminController
             $invoice->name = $invoice->getInvoiceNumberFormatted(Context::getContext()->language->id, (int)$order->id_shop);
             $invoice_array[] = $invoice;
         }
+
+        $order = $order->refreshShippingCost();
 
         // Assign to smarty informations in order to show the new product line
         $this->context->smarty->assign(array(
@@ -2891,5 +3028,17 @@ class AdminOrdersControllerCore extends AdminController
         if ($id_image) {
             $pack_item['image'] = new Image($id_image);
         }
+    }
+
+    /**
+     * Get available carrier list for an order
+     * @param Object $order
+     * @return array $delivery_option_list_formated
+     */
+    protected function getCarrierList($order)
+    {
+        $cart = $this->context->cart;
+        $address = new Address((int) $cart->id_address_delivery);
+        return Carrier::getCarriersForOrder(Address::getZoneById((int) $address->id), null, $cart);
     }
 }

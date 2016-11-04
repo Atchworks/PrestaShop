@@ -287,9 +287,14 @@ $(document).ready(function() {
 	//show footer when reach bottom
 	function animateFooter(){
 		if($(window).scrollTop() + $(window).height() === $(document).height()) {
+			$('div.onboarding-navbar').animate({
+				bottom: "+=50"
+			}, 500, function() {
+			});
 			$('#footer:hidden').removeClass('hide');
 		} else {
 			$('#footer').addClass('hide');
+			$('div.onboarding-navbar').css('bottom', '0px');
 		}
 	}
 
@@ -511,7 +516,15 @@ $(document).ready(function() {
 		});
 	});
 
+	// Order details: show modal to update shipping details
+	$(document).on('click', '.edit_shipping_link', function(e) {
+		e.preventDefault();
 
+		$('#id_order_carrier').val($(this).data('id-order-carrier'));
+		$('#shipping_tracking_number').val($(this).data('tracking-number'));
+		$('#shipping_carrier option[value='+$(this).data('id-carrier')+']').prop('selected', true);
 
+		$('#modal-shipping').modal();
+	});
 
 }); //end dom ready

@@ -27,15 +27,17 @@ namespace PrestaShopBundle\Form\Admin\Feature;
 
 use PrestaShopBundle\Form\Admin\Type\CommonAbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\Form;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\Extension\Core\Type as FormType;
 
 /**
- * This form class is responsible to generate the product options form
+ * This Class is responsible to generate the product Features form
  */
 class ProductFeature extends CommonAbstractType
 {
+    private $featureDataProvider;
     private $translator;
     private $locales;
     private $router;
@@ -69,21 +71,24 @@ class ProductFeature extends CommonAbstractType
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder->add('feature', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-            'label' => $this->translator->trans('Feature', [], 'Admin.Catalog.Feature'),
+            'label' => $this->translator->trans('Feature', array(), 'Admin.Catalog.Feature'),
             'choices' =>  $this->features,
             'choices_as_values' => true,
             'required' =>  false,
             'attr' => array(
-                'data-action' => $this->router->generate('admin_feature_get_feature_values'),
+                'data-action' => $this->router->generate('admin_feature_get_feature_values', array('idFeature' => 1)),
                 'data-toggle' => 'select2',
                 'class' => 'feature-selector',
-            )
+            ),
+            'placeholder' => $this->translator->trans('Choose a feature', array(), 'Admin.Catalog.Feature'),
         ))
         ->add('value', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-            'label' => $this->translator->trans('Pre-defined value', [], 'Admin.Catalog.Feature'),
+            'label' => $this->translator->trans('Pre-defined value', array(), 'Admin.Catalog.Feature'),
             'required' =>  false,
             'choices_as_values' => true,
-            'attr' => array('class' => 'feature-value-selector')
+            'attr' => array('class' => 'feature-value-selector'),
+            'placeholder' => $this->translator->trans('Choose a value', array(), 'Admin.Catalog.Feature'),
+            'disabled' => true,
         ))
         ->add('custom_value', 'PrestaShopBundle\Form\Admin\Type\TranslateType', array(
             'type' => 'Symfony\Component\Form\Extension\Core\Type\TextType',
@@ -91,7 +96,7 @@ class ProductFeature extends CommonAbstractType
             'locales' => $this->locales,
             'hideTabs' => true,
             'required' =>  false,
-            'label' => $this->translator->trans('OR Customized value', [], 'Admin.Catalog.Feature'),
+            'label' => $this->translator->trans('OR Customized value', array(), 'Admin.Catalog.Feature'),
         ));
 
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
@@ -108,13 +113,7 @@ class ProductFeature extends CommonAbstractType
                 'value'
             );
 
-            $form->add('value', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-                'label' => $this->translator->trans('Pre-defined value', [], 'Admin.Catalog.Feature'),
-                'choices' => $choices,
-                'choices_as_values' => true,
-                'required' =>  false,
-                'attr' => array('class' => 'feature-value-selector'),
-            ));
+            $this->updateValueField($form, $choices);
 
         });
 
@@ -132,14 +131,20 @@ class ProductFeature extends CommonAbstractType
                 'value'
             );
 
-            $form->add('value', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
-                'label' => $this->translator->trans('Pre-defined value', [], 'Admin.Catalog.Feature'),
-                'required' =>  false,
-                'attr' => array('class' => 'feature-value-selector'),
-                'choices' => $choices,
-                'choices_as_values' => true,
-            ));
+            $this->updateValueField($form, $choices);
         });
+    }
+
+    private function updateValueField(Form $form, $choices)
+    {
+        $form->add('value', 'Symfony\Component\Form\Extension\Core\Type\ChoiceType', array(
+            'label' => $this->translator->trans('Pre-defined value', array(), 'Admin.Catalog.Feature'),
+            'required' =>  false,
+            'attr' => array('class' => 'feature-value-selector'),
+            'choices' => $choices,
+            'choices_as_values' => true,
+            'placeholder' => $this->translator->trans('Choose a value', array(), 'Admin.Catalog.Feature'),
+        ));
     }
 
     /**

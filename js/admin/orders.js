@@ -302,6 +302,14 @@ function updateAmounts(order)
 		$(this).html(order.weight);
 		$(this).fadeIn('slow');
 	});
+
+	var shippingCarrierPrice = $('#shipping_table .price_carrier_' + order.id_carrier + ' span');
+	$(shippingCarrierPrice).fadeOut('slow', function() {
+		formatCurrencyCldr(parseFloat(order.total_shipping_tax_incl), function(value) {
+			$(shippingCarrierPrice).html(value);
+			$(shippingCarrierPrice).fadeIn('slow');
+		});
+	});
 }
 
 function closeAddProduct()
@@ -714,7 +722,7 @@ function init()
 			var element_list = $('.customized-' + $(this).parent().parent().find('.edit_product_id_order_detail').val());
 			query = 'ajax=1&token='+token+'&action=editProductOnOrder&id_order='+id_order+'&';
 			if (element_list.length)
-				query += element_list.parent().parent().find('input:visible, select:visible, .edit_product_id_order_detail').serialize();
+				query += element_list.find('input:visible, select:visible, .edit_product_id_order_detail').serialize();
 			else
 				query += element.parent().parent().find('input:visible, select:visible, .edit_product_id_order_detail').serialize();
 

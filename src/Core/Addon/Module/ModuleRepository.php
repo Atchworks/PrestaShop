@@ -137,13 +137,15 @@ class ModuleRepository implements ModuleRepositoryInterface
     /**
      * @param AddonListFilter $filter
      *
+     * @param bool            $skip_main_class_attributes
+     *
      * @return AddonInterface[] retrieve a list of addons, regarding the $filter used
      */
-    public function getFilteredList(AddonListFilter $filter)
+    public function getFilteredList(AddonListFilter $filter, $skip_main_class_attributes = false)
     {
         if ($filter->status >= AddonListFilterStatus::ON_DISK
             && $filter->status != AddonListFilterStatus::ALL) {
-            $modules = $this->getModulesOnDisk();
+            $modules = $this->getModulesOnDisk($skip_main_class_attributes);
         } else {
             $modules = $this->getList();
         }
@@ -212,7 +214,6 @@ class ModuleRepository implements ModuleRepositoryInterface
                 }
             }
         }
-
         return $modules;
     }
 
@@ -330,7 +331,6 @@ class ModuleRepository implements ModuleRepositoryInterface
                         'Admin.Modules.Notification'));
             }
         }
-
         return $modules;
     }
 
@@ -340,9 +340,11 @@ class ModuleRepository implements ModuleRepositoryInterface
      *
      * @param string $name The technical name of the module
      *
-     * @return \PrestaShop\PrestaShop\Adapter\Module\Module
+     * @param bool   $skip_main_class_attributes
+     *
+     * @return Module
      */
-    public function getModule($name)
+    public function getModule($name, $skip_main_class_attributes = false)
     {
         $php_file_path = _PS_MODULE_DIR_.$name.'/'.$name.'.php';
 
@@ -381,14 +383,13 @@ class ModuleRepository implements ModuleRepositoryInterface
 
             $disk = array(
                 'filemtime' => $current_filemtime,
-                'filemtime' => $current_filemtime,
                 'is_present' => (int) $this->moduleProvider->isOnDisk($name),
                 'is_valid' => 0,
                 'version' => null,
             );
             $main_class_attributes = array();
 
-            if ($this->moduleProvider->isModuleMainClassValid($name)) {
+            if (!$skip_main_class_attributes && $this->moduleProvider->isModuleMainClassValid($name)) {
                 require_once $php_file_path;
 
                 // We load the main class of the module, and get its properties
@@ -407,8 +408,10 @@ class ModuleRepository implements ModuleRepositoryInterface
                 $disk['version'] = $tmp_module->version;
 
                 $attributes = array_merge($attributes, $main_class_attributes);
-            } else {
+            } else if (!$skip_main_class_attributes) {
                 $main_class_attributes['warning'] = 'Invalid module class';
+            } else {
+                $disk['is_valid'] = 1;
             }
 
             $this->cache[$name]['attributes'] = $main_class_attributes;
@@ -429,12 +432,39 @@ class ModuleRepository implements ModuleRepositoryInterface
         return new Module($attributes, $disk, $database);
     }
 
+    public function getModuleAttributes($name)
+    {
+        $module = $this->getModule($name);
+
+        return $module->attributes;
+    }
+
+    /**
+     * @param $moduleId
+     * @return Module
+     */
+    public function getModuleById($moduleId)
+    {
+        $moduleAttributes = $this->adminModuleProvider->getModuleAttributesById($moduleId);
+        $attributes = $this->getModuleAttributes($moduleAttributes['name']);
+
+        foreach ($attributes->all() as $name => $value) {
+            if (!array_key_exists($name, $moduleAttributes)) {
+                $moduleAttributes[$name] = $value;
+            }
+        }
+
+        return new Module($moduleAttributes);
+    }
+
     /**
      * Instanciate every module present in the modules folder.
      *
+     * @param bool $skip_main_class_attributes
+     *
      * @return \PrestaShop\PrestaShop\Adapter\Module\Module[]
      */
-    private function getModulesOnDisk()
+    private function getModulesOnDisk($skip_main_class_attributes = false)
     {
         $modules = array();
         $modulesDirsList = $this->finder->directories()
@@ -445,8 +475,11 @@ class ModuleRepository implements ModuleRepositoryInterface
 
         foreach ($modulesDirsList as $moduleDir) {
             $moduleName = $moduleDir->getFilename();
+            if (!file_exists(_PS_MODULE_DIR_.$moduleName.'/'.$moduleName.'.php')) {
+                continue;
+            }
             try {
-                $module = $this->getModule($moduleName);
+                $module = $this->getModule($moduleName, $skip_main_class_attributes);
                 if ($module instanceof Module) {
                     $modules[$moduleName] = $module;
                 }

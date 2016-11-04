@@ -46,7 +46,7 @@ class SitemapControllerCore extends FrontController
     public function getTemplateVarSitemap()
     {
         $pages = [];
-        $catalog_mode = Configuration::get('PS_CATALOG_MODE');
+        $catalog_mode = Configuration::isCatalogMode();
 
         $cms = CMSCategory::getRecurseCategory($this->context->language->id, 1, 1, 1);
         foreach ($cms['cms'] as $p) {
@@ -108,17 +108,23 @@ class SitemapControllerCore extends FrontController
             ];
         }
 
-        $catalog['manufacturer'] = [
-            'id' => 'manufacturer-page',
-            'label' => $this->trans('Manufacturers', array(), 'Shop.Theme.Catalog'),
-            'url' => $this->context->link->getPageLink('manufacturer'),
-        ];
+        if (Configuration::get('PS_DISPLAY_SUPPLIERS')) {
+            $manufacturers = Manufacturer::getLiteManufacturersList($this->context->language->id, 'sitemap');
+            $catalog['manufacturer'] = [
+                'id' => 'manufacturer-page',
+                'label' => $this->trans('Brands', array(), 'Shop.Theme.Catalog'),
+                'url' => $this->context->link->getPageLink('manufacturer'),
+                'children' => $manufacturers,
+            ];
 
-        $catalog['supplier'] = [
-            'id' => 'supplier-page',
-            'label' => $this->trans('Suppliers', array(), 'Shop.Theme.Catalog'),
-            'url' => $this->context->link->getPageLink('supplier'),
-        ];
+            $suppliers = Supplier::getLiteSuppliersList($this->context->language->id, 'sitemap');
+            $catalog['supplier'] = [
+                'id' => 'supplier-page',
+                'label' => $this->trans('Suppliers', array(), 'Shop.Theme.Catalog'),
+                'url' => $this->context->link->getPageLink('supplier'),
+                'children' => $suppliers,
+            ];
+        }
 
         $categories = Category::getRootCategory()->recurseLiteCategTree(0, 0, null, null, 'sitemap');
         $catalog['category'] = [

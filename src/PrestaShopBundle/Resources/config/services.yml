@@ -5,7 +5,19 @@ imports:
 services:
     finder:
         class: Symfony\Component\Finder\Finder
-        public: false
+        shared: false
+
+    guzzle.cache.provider:
+        class: Doctrine\Common\Cache\FilesystemCache
+        arguments:
+            - "%kernel.cache_dir%/guzzle"
+
+    guzzle.cache:
+        class: Csa\Bundle\GuzzleBundle\GuzzleHttp\Cache\DoctrineAdapter
+        arguments:
+            - "@guzzle.cache.provider"
+            - "%prestashop.addons.api_client.ttl%"
+        shared: false
 
     main.warmer.cache_warmer:
         class: PrestaShopBundle\Cache\CacheWarmer
@@ -53,6 +65,9 @@ services:
             - [addSubscriber, ["@prestashop.adapter.legacy.hook.subscriber"]]
             - [addSubscriber, ["@prestashop.adapter.legacy.block.helper.subscriber"]]
 
+    prestashop.hook.finder:
+        class: PrestaShopBundle\Service\Hook\HookFinder
+
     # EVENT HANDLER
     prestashop.handler.log:
         class: PrestaShopBundle\Service\Log\LogHandler
@@ -77,6 +92,29 @@ services:
         class: PrestaShop\PrestaShop\Adapter\Security\SslMiddleware
         tags:
             - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
+
+    # CSRF/XSS additional protection middleware
+    prestashop.user_provider:
+        class: PrestaShopBundle\Service\DataProvider\UserProvider
+        arguments: ['@security.token_storage']
+
+    prestashop.tokenized_url_listener:
+        class: PrestaShopBundle\EventListener\TokenizedUrlsListener
+        arguments:
+            - "@security.csrf.token_manager"
+            - "@router"
+            - "@=service('prestashop.user_provider').getUsername()"
+            - "@=service('prestashop.adapter.legacy.context').getContext().employee"
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
+
+    prestashop.router:
+        class: PrestaShopBundle\Service\Routing\Router
+        parent: 'router.default'
+        public: true
+        calls:
+          - ['setTokenManager', ['@security.csrf.token_manager']]
+          - ['setUserProvider', ["@=service('prestashop.user_provider')"]]
 
     # Legacy Hooks registrator
     prestashop.adapter.legacy.hook.subscriber:
@@ -126,10 +164,6 @@ services:
 
     prestashop.adapter.data_provider.customer:
         class: PrestaShop\PrestaShop\Adapter\Customer\CustomerDataProvider
-
-    prestashop.adapter.data_provider.addon:
-        class: PrestaShop\PrestaShop\Adapter\Addons\AddonsDataProvider
-        arguments: ['@prestashop.addons.client_api']
 
     prestashop.adapter.data_provider.combination:
         class: PrestaShop\PrestaShop\Adapter\CombinationDataProvider
@@ -184,6 +218,7 @@ services:
 
     prestashop.twig.extension.translation:
         class: PrestaShopBundle\Twig\TranslationsExtension
+        arguments: ["@service_container", "@router"]
         properties:
             logger: "@logger"
             translator: "@translator"
@@ -206,7 +241,7 @@ services:
     prestashop.core.module.updater:
         class: PrestaShop\PrestaShop\Adapter\Module\ModuleDataUpdater
         arguments:
-            - "@prestashop.adapter.data_provider.addon"
+            - "@prestashop.core.admin.data_provider.addons_interface"
             - "@prestashop.adapter.admin.data_provider.module"
 
     # Repositories
@@ -219,9 +254,33 @@ services:
             - "@prestashop.adapter.legacy.logger"
             - "@translator"
 
-    prestashop.core.admin.theme.repository:
+    prestashop.core.addon.theme.repository:
         class: PrestaShop\PrestaShop\Core\Addon\Theme\ThemeRepository
-        arguments: ["@prestashop.adapter.legacy.configuration", "@=service('prestashop.adapter.legacy.context').getContext().shop"]
+        arguments:
+          - "@prestashop.adapter.legacy.configuration"
+          - "@filesystem"
+          - "@=service('prestashop.adapter.legacy.context').getContext().shop"
+
+    prestashop.core.addon.theme.exporter:
+        class: PrestaShop\PrestaShop\Core\Addon\Theme\ThemeExporter
+        arguments:
+          - "@prestashop.adapter.legacy.configuration"
+          - "@filesystem"
+          - "@finder"
+          - "@prestashop.core.admin.lang.repository"
+          - "@prestashop.translation.theme.exporter"
+
+    prestashop.core.admin.translation.repository:
+        class: PrestaShopBundle\Entity\Repository\TranslationRepository
+        factory: ['@doctrine.orm.default_entity_manager', getRepository]
+        arguments:
+            - PrestaShopBundle\Entity\Translation
+
+    prestashop.core.admin.lang.repository:
+        class: PrestaShopBundle\Entity\Repository\LangRepository
+        factory: ['@doctrine.orm.default_entity_manager', getRepository]
+        arguments:
+            - PrestaShopBundle\Entity\Lang
 
     # Managers
     prestashop.adapter.image_manager:
@@ -246,14 +305,6 @@ services:
             - "@finder"
             - "@translator"
 
-    # TRANSLATIONS
-    prestashop.translations.database_loader:
-        class: PrestaShopBundle\Translation\Loader\DatabaseTranslationLoader
-        arguments:
-            - "@doctrine.orm.entity_manager"
-        tags:
-            - {name: translation.loader, alias: db}
-
 # Addons API Client
     prestashop.addons.client_api:
         class: PrestaShopBundle\Service\DataProvider\Marketplace\ApiClient
@@ -261,4 +312,6 @@ services:
             - "@csa_guzzle.client.addons_api"
             - "@=service('prestashop.adapter.legacy.context').getContext().language.iso_code"
             - "@=service('prestashop.adapter.data_provider.country').getIsoCodebyId()"
+        calls:
+            - [ "setSslVerification", ["%prestashop.addons.api_client.verify_ssl%"]]
 

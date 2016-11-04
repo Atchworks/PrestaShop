@@ -1,9 +1,23 @@
-<div class="tab-pane fade{if !$product.description} in active{/if}" id="product-details">
+<div class="tab-pane fade{if !$product.description} in active{/if}" id="product-details" data-product="{$product|json_encode}">
   {block name='product_reference'}
-    {if $product.reference}
+    {if isset($product_manufacturer->id)}
+      <div class="product-manufacturer">
+        {if isset($manufacturer_image_url)}
+          <a href="{$product_brand_url}">
+            <img src="{$manufacturer_image_url}" class="img img-thumbnail manufacturer-logo" />
+          </a>
+        {else}
+          <label class="label">{l s='Brand' d='Shop.Theme.Catalog'}</label>
+          <span>
+            <a href="{$product_brand_url}">{$product_manufacturer->name}</a>
+          </span>
+        {/if}
+      </div>
+    {/if}
+    {if isset($product.reference_to_display)}
       <div class="product-reference">
         <label class="label">{l s='Reference' d='Shop.Theme.Catalog'} </label>
-        <span itemprop="sku">{$product.reference}</span>
+        <span itemprop="sku">{$product.reference_to_display}</span>
       </div>
     {/if}
     {/block}
@@ -39,6 +53,21 @@
               <dd class="value">{$feature.value}</dd>
             {/foreach}
           </dl>
+        </section>
+      {/if}
+    {/block}
+
+    {* if product have specific references, a table will be added to product details section *}
+    {block name='product_specific_references'}
+      {if isset($product.specific_references)}
+        <section class="product-features">
+          <h3 class="h6">{l s='Specific References' d='Shop.Theme.Catalog'}</h3>
+            <dl class="data-sheet">
+              {foreach from=$product.specific_references item=reference key=key}
+                <dt class="name">{$key}</dt>
+                <dd class="value">{$reference}</dd>
+              {/foreach}
+            </dl>
         </section>
       {/if}
     {/block}
